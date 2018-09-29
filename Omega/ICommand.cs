@@ -6,11 +6,45 @@ using System.Threading.Tasks;
 
 namespace Omega
 {
-    interface ICommand
+    public enum CommandType
     {
+        MoveStone,
+        Undo
+    }
+    public interface ICommand
+    {
+        CommandType CmdType { get; }
+
         void Execute();
         void Undo();
     }
 
-   
+    public class Command : ICommand
+    {
+        protected CommandType cmdType;
+        public int PresentId { get; set; }
+        public int PlayerId { get; set; }
+        public Vector2 Position { get; set; }
+
+        public CommandType CmdType
+        {
+            get { return cmdType; }
+        }
+
+
+        public Command(CommandType type,int PresentId, Vector2 position)
+        {
+            cmdType = type;
+            this.PresentId = PresentId;
+            this.Position = position;
+        }
+        public virtual void Execute()
+        {
+        }
+
+        public virtual void Undo()
+        {
+        }
+    }
+
 }

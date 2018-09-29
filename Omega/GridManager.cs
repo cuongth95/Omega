@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Omega.Test;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
@@ -54,7 +55,7 @@ namespace Omega
         {
             //grid = new List<Hex>();
             hexGrid = new Dictionary<Vector2, Hex>();
-            this.hexesPerSide =Constants.MIN_HEXS_PER_SIDE;
+            this.hexesPerSide = Constants.MIN_HEXS_PER_SIDE;
             this.MapRad = hexesPerSide - 1;
             this.angle = 60f;
             Origin = new PointF(GameScreen.Width/2, GameScreen.Height/2);
@@ -100,6 +101,9 @@ namespace Omega
             }
                 return ret;
         }
+
+        
+
         public Dictionary<Direction,Corner> SetHexagonPlayingScope(int playHexPerSide)
         {
             Dictionary<Direction, Corner> cornerDict = new Dictionary<Direction, Corner>();

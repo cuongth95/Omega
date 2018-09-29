@@ -92,7 +92,13 @@ namespace Omega
                 sp.DrawString(this.Id + "", "arial", this.PixelPoint, Color.DeepPink);
             }
         }
-
+        public void TestDrawLabel(int id)
+        {
+            if (Constants.DEBUG_DRAW_LABEL)
+            {
+                sp.DrawString(id + "", "arial", this.PixelPoint, Color.DeepPink);
+            }
+        }
         public bool EqualTo(Hex b)
         {
             if (this.Position.X == b.Position.X
@@ -149,6 +155,6 @@ namespace Omega
             return new Hex(a.Position.X * b.Position.X, a.Position.Y * b.Position.Y);
 
         }
-
+        
     }
 }

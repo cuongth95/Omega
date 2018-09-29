@@ -37,6 +37,8 @@ namespace Omega
         {
             g = graphics;
             gFrontBuffer = Graphics.FromHwnd(formHandle);
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            gFrontBuffer.SmoothingMode = SmoothingMode.AntiAlias;
             backBuffer = buffer;
 
             rm = ResourceManager.GetInstance();

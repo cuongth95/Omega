@@ -30,7 +30,7 @@ namespace Omega
             var gFrontBuffer = Graphics.FromHwnd(this.Handle);
             var graphics = Graphics.FromImage(backbuffer);
 
-            gameScreen = new GameScreen();
+            gameScreen = new GameScreen(this);
 
             GUI.SetConfig(Constants.BACKGROUND_COLOR, this.Controls);
 
@@ -41,8 +41,10 @@ namespace Omega
             //Application.Idle += HandleApplicationIdle;
             this.MouseClick += gameScreen.HandleMouseInput;
             this.KeyDown += gameScreen.HandleKeyboardInput;
+           
 
         }
+
 
         //private void Form1_MouseClick(object sender, MouseEventArgs e)
         //{
@@ -143,6 +145,7 @@ namespace Omega
             stopWatch.Start();
 
             #region TEST_USE_WIN32_MSG
+            
             while (true)
             {
                 if (!Created)
@@ -173,12 +176,10 @@ namespace Omega
                     if (deltaTime >= FRAME_RATE)
                     {
                         //Console.WriteLine("elapsed time = " + deltaTime);
-
-
                         //gameScreen.HandleInput(eventQueue);
 
                         gameScreen.Update(deltaTime);
-
+                        gameScreen.OnGUI();
                         Render();
 
 
@@ -190,7 +191,7 @@ namespace Omega
                         System.Threading.Thread.Sleep(remainTime);
                     }
 
-                    // System.Threading.Thread.Sleep(2);
+                    //System.Threading.Thread.Sleep(2);
 
                 }
 
@@ -200,8 +201,6 @@ namespace Omega
 
         public void Render()
         {
-            //draw gui
-            gameScreen.OnGUI();
             //clear bg
             sp.Begin();
 

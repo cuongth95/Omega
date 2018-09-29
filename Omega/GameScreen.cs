@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Omega.Test;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
@@ -11,43 +12,54 @@ namespace Omega
     class GameScreen : Scene
     {
         //public static SolidBrush MasterBrush = new SolidBrush(Color.ForestGreen);
-        
+
         //private GameObject[] gameObjects;
-        private GridManager gridManager;
-        private Dictionary<Direction, Corner> cornerDict;
+
+        private GameState gameState;
+        private GridMan gridMan;
+
+        //private GridManager gridManager;
+        //private Dictionary<Direction, Corner> cornerDict;
         
-        List<Vector2> playBoard;
         private Hex selectedHex;
         private Corner selectedCorner;
 
         private List<Player> playerList;
+        private Queue<int> roundQueue;
 
         private Queue<Stone> defRoundStoneQueue;
         private Queue<Stone> curRoundStoneQueue;
         private List<Stone> stoneList;
 
+        Command inputMoveStoneCommand;
+        private Form form;
 
+        public GameScreen(Form1 f)
+        {
+            this.form = f;
+        }
 
 
         public override void Init()
         {
             base.Init();
             variant = Constants.PLAYSCOPE_HEXS_PER_SIDE;
-            gridManager = new GridManager();
-            gridManager.Init();
+
 
             playerList = new List<Player>();
-            var player1 = new Player(Color.White);
+            var player1 = new Player(1);
             player1.Init();
             var white = new Stone(player1.PresentedColor);
             //white.MoveTo( gridManager.GetHex(0, 0));
             player1.DefaultStone = white;
 
-            var player2 = new Player(Color.Black);
+            var player2 = new Player(2);
             player2.Init();
             var black = new Stone(player2.PresentedColor);
             //black.MoveTo( gridManager.GetHex(0, 0));
             player2.DefaultStone = black;
+
+            inputMoveStoneCommand = new Command(CommandType.MoveStone,0, new Vector2(0, 0));
 
             playerList.Add(player1);
             playerList.Add(player2);
@@ -56,45 +68,69 @@ namespace Omega
             curRoundStoneQueue = new Queue<Stone>();
             stoneList = new List<Stone>();
 
+            roundQueue = new Queue<int>();
+            gameState = new GameState(variant, Constants.MIN_HEXS_PER_SIDE);
+            gridMan = new GridMan(gameState,
+                Constants.GRID_ORIGIN,
+                Constants.GRID_HEX_RADIUS);
+
+
+            gameState.AddPlayer(player1);
+            gameState.AddPlayer(player2);
+            
+            //gridManager = new GridManager();
+            //gridManager.Init();
+
+            //foreach (var player in playerList)
+            //      defRoundStoneQueue.Enqueue(player.DefaultStone);
+
+            GeneratePlayBoard();
             ResetNewTurn();
 
 
             
 
-            GeneratePlayBoard();
             
         }
 
         private void Restart()
         {
             isFirstTime = false;
+            gameState.ResetBoard();
             foreach (var player in playerList)
             {
                 player.Reset();
             }
-            gridManager.Reset();
+            //gridManager.Reset();
             stoneList.Clear();
             ResetNewTurn();
         }
 
         private void ResetNewTurn()
         {
+            curRoundStoneQueue.Clear();
             foreach (var player in playerList)
             {
-                defRoundStoneQueue.Enqueue(player.DefaultStone);
                 curRoundStoneQueue.Enqueue(new Stone(player.DefaultStone.Color));
             }
+
+            roundQueue.Clear();
+            foreach (var player in playerList)
+            {
+                roundQueue.Enqueue(player.PlayerId);
+            }
+
         }
 
         private void GeneratePlayBoard()
         {
-            var leftmostPoint = gridManager.GetHex(- gridManager.HexesPerSide,0);
-            var setOfPoints = gridManager.GetAllPositions();
-            // find convex hull
-            //playBoard = JarvisConvexHull(leftmostPoint.Position, setOfPoints);
+            //var leftmostPoint = gridManager.GetHex(- gridManager.HexesPerSide,0);
+            //var setOfPoints = gridManager.GetAllPositions();
+            //// find convex hull
+            ////playBoard = JarvisConvexHull(leftmostPoint.Position, setOfPoints);
 
-            cornerDict= gridManager.SetHexagonPlayingScope(variant);
-            
+            //cornerDict= gridManager.SetHexagonPlayingScope(variant);
+            gridMan.Init();
         }
 
         private List<Vector2> JarvisConvexHull(Vector2 leftmostPoint,List<Vector2> setOfPoints)
@@ -150,27 +186,39 @@ namespace Omega
             base.Load();
         }
 
+
         public void HandleMouseInput(object sender, MouseEventArgs e)
         {
-
+            
             var point = e.Location;
+            
             if (e.Button == MouseButtons.Left)
             {
                 debug = "raw pos =" + point.ToString() + "\n";
-                var transformedPos = Utils.PixelToPosition(point, gridManager.Origin, gridManager.UnitRad);
-                if (gridManager.IsPositionInPlayScope(transformedPos))
+                var transformedPos = Utils.PixelToPosition(point,Constants.GRID_ORIGIN,Constants.GRID_HEX_RADIUS);
+
+                //if (gridManager.IsPositionInPlayScope(transformedPos))
+                if (!gameState.CheckGameOver()&&gridMan.IsPositionInPlayScope(transformedPos))
                 {
-                    selectedHex = gridManager.GetHex(transformedPos);
-                    debug += "tfpos=" + selectedHex.Position.ToString();
+                    var presentIdOfStone =  roundQueue.Dequeue();
+                    playerList[currPlayerIndex].NextCommand(new Command(CommandType.MoveStone, presentIdOfStone, transformedPos));
+                    debug += "tfpos=" + transformedPos.ToString();
+                    if (roundQueue.Count <= 0)
+                    {
+                        ResetNewTurn();
+                        NextPlayer();
+                    }
 
-                    BundleArgs eventArgs = new BundleArgs();
-                    eventArgs.AddItem("hex", selectedHex);
 
-                    playerList[currPlayerIndex].NextCommand(new EventHandler(EventType.MOVE_STONE, eventArgs));
+                    //    selectedHex = gridManager.GetHex(transformedPos);
+                    //    BundleArgs eventArgs = new BundleArgs();
+                    //    eventArgs.AddItem("hex", selectedHex);
+                    //    playerList[currPlayerIndex].NextCommand(new EventHandler(EventType.MOVE_STONE, eventArgs));
                 }
                 else
                 {
                     debug += transformedPos.ToString() + " is over game scope!";
+
                 }
             }
             else if (e.Button == MouseButtons.Right)
@@ -184,35 +232,120 @@ namespace Omega
         int variant;
         int nextDir = 0;
         int currPlayerIndex = 0;
+
+        EventHandler lastCommand;
+
+
         public override void Update(float dt)
         {
-            if (CanPlayNewRound())
+             
+            if (!gameState.CheckGameOver())
             {
+                var command1 = playerList[0].GetCommand();
+                var command2 = playerList[1].GetCommand();
 
-                var cmd = playerList[currPlayerIndex].GetCommand();
-                if (cmd == null)
-                    return;
-                ExecuteCommand(cmd);
-                if(curRoundStoneQueue.Count <= 0)
-                {
-                    ResetNewTurn();
-                    NextPlayer();
-                }
+                gameState.AddCommand(command1);
+                gameState.AddCommand(command2);
+
+                gameState.Cycle(dt);
             }
             else
             {
-                status = "FINISH";
                 if (!isFirstTime)
                 {
                     isFirstTime = true;
-                    gridManager.TagLabelAlgorithm(playerList);
+                    gameState.UpdateScores();
+
+                    //re-learning if need
+                    foreach (var player in playerList)
+                    {
+                        player.GameOver(gameState.GetWinner());
+                    }
                 }
-
-                //gridManager.ShowScore(playerList);
-
             }
+
+            //if (CanPlayNewRound())
+            //{
+            //    var cmd = playerList[currPlayerIndex].GetHumanCommand();
+            //    if (cmd == null)
+            //        return;
+            //    lastCommand = cmd.Clone();
+            //    ExecuteCommand(cmd);
+            //    if(curRoundStoneQueue.Count <= 0)
+            //    {
+            //        ResetNewTurn();
+            //        NextPlayer();
+            //    }
+            //}
+            //else
+            //{
+            //    status = "FINISH";
+            //    if (!isFirstTime)
+            //    {
+            //        isFirstTime = true;
+            //        //gridManager.TagLabelAlgorithm(playerList);
+            //    }
+
+            //    //gridManager.ShowScore(playerList);
+
+            //}
            
 
+        }
+        public void OnBtnUndoClicked()
+        {
+            //U clicked
+            
+            var undoState = gameState.Undo();
+            if(undoState != null)
+            {
+                gameState = undoState;
+                gridMan.SetGameState(gameState);
+                if (roundQueue.Count == playerList.Count)
+                {
+                    NextPlayer();
+                    roundQueue.Dequeue();
+                }
+                else
+                {
+                    ResetNewTurn();
+                }
+                if (isFirstTime)
+                {
+                    isFirstTime = false;
+                    foreach (var player in playerList)
+                    {
+                        player.Score = 0;
+                    }
+                }
+            }
+        }
+        public void Undo()
+        {
+            if (lastCommand != null)
+            {
+                //PROBLEMMMMM hex still hold holder
+                stoneList.RemoveAt(stoneList.Count - 1);
+
+                if (curRoundStoneQueue.Count == playerList.Count)
+                {
+                    NextPlayer();
+                    curRoundStoneQueue.Dequeue();
+                }
+                else
+                {
+                    ResetNewTurn();
+                }
+
+                if (lastCommand.type == EventType.MOVE_STONE)
+                {
+                    var bundle = lastCommand.eArgs as BundleArgs;
+                    var hex = bundle.GetItemByKey<Hex>("hex");
+
+                    hex.Holder = null;
+                }
+                lastCommand = null;
+            }
         }
 
 
@@ -226,7 +359,7 @@ namespace Omega
                 MoveStone(hex);
             }
         }
-
+       
         private void NextPlayer()
         {
             currPlayerIndex = (currPlayerIndex + 1) % playerList.Count;
@@ -234,11 +367,10 @@ namespace Omega
 
         private bool CanPlayNewRound()
         {
-
-            return gridManager.TotalPlaygroundHexes - stoneList.Count >= playerList.Count * playerList.Count;
+            return false;
+            //return gridManager.TotalPlaygroundHexes - stoneList.Count >= playerList.Count * playerList.Count;
         }
-
-
+        
         private void MoveStone(Hex selectedHex)
         {
             
@@ -248,53 +380,36 @@ namespace Omega
                 Stone s = curRoundStoneQueue.Dequeue();
                 s.MoveTo(selectedHex);
                 stoneList.Add(s);
-
-
             }
 
         }
+        
+        
 
-        internal void HandleInput(Queue<EventHandler> eventQueue)
-        {
-            //while(eventQueue.Count != 0)
-            //{
-            //    var inputEvent = eventQueue.Dequeue();
-            //    if(inputEvent.type == EventType.MOUSE)
-            //    {
-            //        var mouseEArgument = (MouseEventArgs)inputEvent.eArgs;
-                    
-            //         HandleMouseInput(mouseEArgument);
-            //    }
-            //    else if(inputEvent.type == EventType.KEYBOARD)
-            //    {
-            //        var keyEArgument = (KeyEventArgs) inputEvent.eArgs;
-            //        HandleKeyboardInput(keyEArgument);
-                    
-            //    }
-
-            //}
-        }
-
+        int oldVariant=0;
         public void HandleKeyboardInput(object sender, KeyEventArgs e)
         {
-            var oldVariant = variant;
-            if(e.KeyCode == Keys.W)
+            if (e.KeyCode == Keys.W)
             {
                 variant++;
-                variant = Math.Min(variant, gridManager.HexesPerSide);
+                variant = Math.Min(variant, gameState.HexesPerSide);
             }
-            else if(e.KeyCode == Keys.S)
+            else if (e.KeyCode == Keys.S)
             {
                 variant--;
                 variant = Math.Max(variant,2);
             }
+            else if(e.KeyCode == Keys.U)
+            {
+                OnBtnUndoClicked();
+            }
 
             if(oldVariant != variant)
             {
-
-                cornerDict= gridManager.SetHexagonPlayingScope(variant);
-
+                //cornerDict= gridManager.SetHexagonPlayingScope(variant);
                 oldVariant = variant;
+                gameState.UpdatePlayBoard(oldVariant - 1);
+                gridMan.SetupConerns();
             }
         }
 
@@ -306,48 +421,55 @@ namespace Omega
         {
             //hex.Draw();
 
-            gridManager.Draw();
+            gridMan.Draw();
 
-            foreach (var stone in stoneList)
-            {
-                stone.Draw();
-            }
+            //gridManager.Draw();
 
-            gridManager.TestDrawLabels();
+            //foreach (var stone in stoneList)
+            //{
+            //    stone.Draw();
+            //}
 
-            foreach (var corner in cornerDict)
-            {
-                corner.Value.Draw();
-            }
+            //gridManager.TestDrawLabels();
+
+            //foreach (var corner in cornerDict)
+            //{
+            //    corner.Value.Draw();
+            //}
 
         }
+
+        
         string debug;
         string edit;
         string status = "PLAYING";
         private bool isFirstTime = false;
-
+        Rectangle rect;
         public override void OnGUI()
         {
             GUI.Begin();
-
-            GUI.Label(new Rectangle(0, Height * 3 / 4,100,32), "post-edit:" + edit);
-            GUI.Label(new Rectangle(0, Height * 1 / 4,100,100), "variant=" + variant);
+            GUI.Label(new Rectangle(0, Height * 3 / 4, 100, 32), "post-edit:" + edit);
+            GUI.Label(new Rectangle(0, Height * 1 / 4, 100, 100), "variant=" + variant);
             GUI.Label(new Rectangle(0, Height / 2, 100, 100), "debug  =" + debug);
-            GUI.Label(new Rectangle(Width/2-128,16,128,16), "CURRENT PLAYER-"+currPlayerIndex);
-            GUI.Label(new Rectangle(Width /2-64, 32, 128, 16), "STATUS-" + status);
-            GUI.Label(new Rectangle(Width / 2 - 64, 48, 128, 16), "PLAYER1_SCORE:"+playerList[0].Score);
+            GUI.Label(new Rectangle(Width / 2 - 64, 16, 128, 16), "CURRENT PLAYER-" + currPlayerIndex);
+            GUI.Label(new Rectangle(Width / 2 - 64, 48, 128, 16), "PLAYER1_SCORE:" + playerList[0].Score);
             GUI.Label(new Rectangle(Width / 2 - 64, 64, 128, 16), "PLAYER2_SCORE:" + playerList[1].Score);
 
-            GUI.Button(new Rectangle(Width * 1 / 4, 64, 128, 16), 
-                "RESET", () =>
-                 {
-                     this.Restart();
-                 });
+            //GUI.Button(new Rectangle(0, 0, 100, 64),
+            //    "RESET", () =>
+            //    {
+            //        this.Restart();
 
-            //edit = GUI.TextBox(new Rectangle(0, 0,320,64), edit);
+            //    });
+            //GUI.Button(new Rectangle(0, 64, 100, 64),
+            //    "UNDO", () =>
+            //    {
+            //        this.Undo();
+
+            //    });
+            //////edit = GUI.TextBox(new Rectangle(0, 0,320,64), edit);
 
             GUI.End();
         }
-
     }
 }

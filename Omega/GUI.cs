@@ -8,23 +8,24 @@ using System.Windows.Forms;
 
 namespace Omega
 {
-    class GUI
+    public class GUI 
     {
         private static GUI Instance;
         private int index;
         private Color backColor;
         private Control.ControlCollection controls;
-        Dictionary<int, Label> lblDict;
-        Dictionary<int, TextBox> txtDict;
-        Dictionary<int, Button> btnDict;
-        private GUI() {
+        public Dictionary<int, Label> lblDict;
+        public Dictionary<int, TextBox> txtDict;
+        public Dictionary<int, Button> btnDict;
+        private GUI()
+        {
             lblDict = new Dictionary<int, Label>();
             txtDict = new Dictionary<int, TextBox>();
             btnDict = new Dictionary<int, Button>();
         }
-        public static void SetConfig( Color backColor,Control.ControlCollection controls)
+        public static void SetConfig(Color backColor, Control.ControlCollection controls)
         {
-            if(Instance == null)
+            if (Instance == null)
             {
                 Instance = new GUI();
             }
@@ -40,7 +41,7 @@ namespace Omega
 
         }
 
-        public static void Label(Rectangle pixelRect,string content)
+        public static void Label(Rectangle pixelRect, string content)
         {
 
             if (!Instance.lblDict.ContainsKey(Instance.index))
@@ -57,7 +58,7 @@ namespace Omega
 
             Instance.index++;
         }
-        public static void Button(Rectangle pixelRect, string content,Action onClick)
+        public static void Button(Rectangle pixelRect, string content, Action onClick)
         {
             if (!Instance.lblDict.ContainsKey(Instance.index))
             {
@@ -78,7 +79,7 @@ namespace Omega
             Instance.index++;
 
         }
-        
+
 
         public static string TextBox(Rectangle pixelRect, string text)
         {
@@ -101,6 +102,6 @@ namespace Omega
             stringToEdit = txtBox.Text;
             return stringToEdit;
         }
-        
+
     }
 }

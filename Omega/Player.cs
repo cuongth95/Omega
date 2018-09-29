@@ -7,40 +7,58 @@ using System.Threading.Tasks;
 
 namespace Omega
 {
-    class Player:GameObject
+    public class Player:GameObject
     {
         //Queue<EventHandler> eventQueue;
         public long Score { get; set; }
-        EventHandler nextCommand;
+        EventHandler nextHandler;
+        Command nextCommand;
         public Color PresentedColor;
         public Stone DefaultStone { get; set; }
+        public int PlayerId { get; }
         public override void Init()
         {
             base.Init();
-            nextCommand = null;
+            nextHandler = null;
         }
 
         public override void Reset(bool isActive = false)
         {
-            nextCommand = null;
+            nextHandler = null;
             Score = 1;
         }
 
-        public void NextCommand(EventHandler eventHandler)
+        public Command GetCommand() {
+            var ret = nextCommand;
+            nextCommand = null;
+            return ret;
+        }
+
+        public void NextCommand(Command cmd)
         {
-            nextCommand = eventHandler;
+            this.nextCommand = cmd;
+            this.nextCommand.PlayerId = this.PlayerId;
+        }
+
+        public void NextHandler(EventHandler eventHandler)
+        {
+            nextHandler = eventHandler;
             //eventQueue.Enqueue(eventHandler);
 
         }
-        public EventHandler GetCommand()
+        public EventHandler GetHumanCommand()
         {
-            var ret = nextCommand;
-            nextCommand = null;
+            var ret = nextHandler;
+            nextHandler = null;
             return ret;
             //if (eventQueue.Count > 0)
             //    return eventQueue.Dequeue();
             //else
             //    return null;
+        }
+        public EventHandler GetPrevCommand()
+        {
+            return nextHandler;
         }
 
         //private  ICommand nextCommand;
@@ -61,7 +79,20 @@ namespace Omega
         {
             this.PresentedColor = playerId;
         }
+        public Player(int playerId)
+        {
+            this.PlayerId = playerId;
+        }
+        public Player(Player p)
+        {
+            this.PlayerId = p.PlayerId;
+            this.Id = p.Id;
+            this.Score = p.Score;
+            this.Tag = p.Tag.ToString();
+        }
+        public void GameOver(List<int> winnerList)
+        {
 
-
+        }
     }
 }

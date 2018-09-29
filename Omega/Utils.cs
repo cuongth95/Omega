@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Omega.Test;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
@@ -6,13 +7,7 @@ using System.Text;
 
 namespace Omega
 {
-    public enum GameState {
-        START,
-        PAUSE,
-        RUNNING,
-        GAME_OVER
-
-    }
+    
     public enum EventType
     {
         MOVE_STONE
@@ -26,6 +21,10 @@ namespace Omega
         {
             this.type = type;
             this.eArgs = eventArgs;
+        }
+        public EventHandler Clone()
+        {
+            return new EventHandler(this.type, this.eArgs);
         }
     }
     public class BundleArgs: EventArgs
@@ -125,14 +124,26 @@ namespace Omega
             this.color = color;
         }
     }
-
+    public struct Region
+    {
+        public int regionId;
+        public int holderId;
+        public Region(int regionId, int holderId)
+        {
+            this.regionId = regionId;
+            this.holderId = holderId;
+        }
+    }
     public class Constants
     {
 
         public const bool DEBUG_DRAW_POSITION_IN_HEX = false;
         public const bool DEBUG_DRAW_LABEL = true;
 
+        public readonly static PointF GRID_ORIGIN = new PointF(Constants.WINDOW_WIDTH / 2, Constants.WINDOW_HEIGHT / 2);
+        public readonly static float GRID_HEX_RADIUS = 20;
         public readonly static Color BACKGROUND_COLOR = Color.White;
+        internal static readonly int NUM_OF_PLAYERS = 2;
         public const int PLAYSCOPE_HEXS_PER_SIDE = 2;
         public const int MIN_HEXS_PER_SIDE = 10;
         public const int MAX_HEXS_PER_SIDE = 15;
@@ -144,6 +155,41 @@ namespace Omega
 
     public class Utils
     {
+        public static List<Player> Clone(List<Player> list)
+        {
+            List<Player> ret = new List<Player>();
+
+            foreach (var item in list)
+            {
+                ret.Add(new Player(item));
+            }
+
+            return ret;
+        }
+        public static List<Command> Clone(List<Command> cmdList)
+        {
+            List<Command> ret = new List<Command>();
+
+            foreach (var cmd in cmdList)
+            {
+                ret.Add(new Command(cmd.CmdType, cmd.PresentId, cmd.Position));
+            }
+
+            return ret;
+        }
+
+        public static Dictionary<Vector2,Unit> Clone(Dictionary<Vector2, Unit> board)
+        {
+            Dictionary<Vector2, Unit> temp = new Dictionary<Vector2, Unit>();
+
+            foreach (var pair in board)
+            {
+                temp[pair.Key] = pair.Value.Clone();
+            }
+
+            return temp;
+        }
+
         public static PointF PositionToPixel(Vector2 pos,PointF origin, float radius)
         {
             

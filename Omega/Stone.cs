@@ -19,7 +19,6 @@ namespace Omega
         public void MoveTo( Hex hex)
         {
             sp = SpriteBatch.GetInstance();
-
             hex.Holder = this;
             this.Position = hex.Position;
             this.PixelPoint = hex.PixelPoint;
@@ -34,6 +33,16 @@ namespace Omega
         }
         public Stone(Color color)
         {
+            this.Color = color;
+        }
+
+        public Stone(PointF pixelPoint, Color color)
+        {
+            sp = SpriteBatch.GetInstance();
+            var tlPoint = new PointF(pixelPoint.X, pixelPoint.Y);
+            tlPoint.X -= Constants.STONE_RADIUS / 2;
+            tlPoint.Y -= Constants.STONE_RADIUS / 2;
+            pixelRect = new RectangleF(tlPoint, new SizeF(Constants.STONE_RADIUS, Constants.STONE_RADIUS));
             this.Color = color;
         }
         

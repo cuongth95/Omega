@@ -55,12 +55,12 @@
     </Compile>
     <Compile Include="GameObject.cs" />
     <Compile Include="GameScreen.cs" />
+    <Compile Include="Test\GameState.cs" />
     <Compile Include="GameTime.cs" />
     <Compile Include="GridManager.cs" />
     <Compile Include="GUI.cs" />
     <Compile Include="Hex.cs" />
     <Compile Include="ICommand.cs" />
-    <Compile Include="MoveStoneCommand.cs" />
     <Compile Include="Player.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -69,6 +69,8 @@
     <Compile Include="SceneManager.cs" />
     <Compile Include="SpriteBatch.cs" />
     <Compile Include="Stone.cs" />
+    <Compile Include="Test\GridMan.cs" />
+    <Compile Include="Test\Unit.cs" />
     <Compile Include="Utils.cs" />
     <EmbeddedResource Include="Form1.resx">
       <DependentUpon>Form1.cs</DependentUpon>
@@ -94,6 +96,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Ai\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
