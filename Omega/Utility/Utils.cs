@@ -102,12 +102,12 @@ namespace Omega
     }
     public enum Direction
     {
-        Right=0,
-        TopRight=1,
-        TopLeft=2,
-        Left=3,
-        BotLeft=4,
-        BotRight=5
+        Left = 0,
+        TopLeft = 1,
+        TopRight = 2,
+        Right =3,
+        BotRight = 4,
+        BotLeft =5
     }
     public enum ResourceType {
         Texture,
@@ -134,27 +134,12 @@ namespace Omega
             this.holderId = holderId;
         }
     }
-    public class Constants
-    {
-
-        public const bool DEBUG_DRAW_POSITION_IN_HEX = false;
-        public const bool DEBUG_DRAW_LABEL = true;
-
-        public readonly static PointF GRID_ORIGIN = new PointF(Constants.WINDOW_WIDTH / 2, Constants.WINDOW_HEIGHT / 2);
-        public readonly static float GRID_HEX_RADIUS = 20;
-        public readonly static Color BACKGROUND_COLOR = Color.White;
-        internal static readonly int NUM_OF_PLAYERS = 2;
-        public const int PLAYSCOPE_HEXS_PER_SIDE = 2;
-        public const int MIN_HEXS_PER_SIDE = 10;
-        public const int MAX_HEXS_PER_SIDE = 15;
-        public const float STONE_RADIUS = 32;
-        public const int WINDOW_WIDTH = 1280;
-        public const int WINDOW_HEIGHT = 800;
-        public const float SPACING = 1.1f;
-    }
+    
 
     public class Utils
     {
+        public static Array Directions = Enum.GetValues(typeof(Direction));
+
         public static List<Player> Clone(List<Player> list)
         {
             List<Player> ret = new List<Player>();
@@ -172,7 +157,7 @@ namespace Omega
 
             foreach (var cmd in cmdList)
             {
-                ret.Add(new Command(cmd.CmdType, cmd.PresentId, cmd.Position));
+                ret.Add(cmd.Clone());
             }
 
             return ret;

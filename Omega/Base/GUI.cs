@@ -17,11 +17,13 @@ namespace Omega
         public Dictionary<int, Label> lblDict;
         public Dictionary<int, TextBox> txtDict;
         public Dictionary<int, Button> btnDict;
+        public Dictionary<int, PictureBox> imgDict;
         private GUI()
         {
             lblDict = new Dictionary<int, Label>();
             txtDict = new Dictionary<int, TextBox>();
             btnDict = new Dictionary<int, Button>();
+            imgDict = new Dictionary<int, PictureBox>();
         }
         public static void SetConfig(Color backColor, Control.ControlCollection controls)
         {
@@ -58,6 +60,44 @@ namespace Omega
 
             Instance.index++;
         }
+        public static void Label(Rectangle pixelRect, string content,Color frontColor,Color backColor)
+        {
+
+            if (!Instance.lblDict.ContainsKey(Instance.index))
+            {
+                Label label = new Label();
+                label.BackColor = Instance.backColor;
+                Instance.lblDict.Add(Instance.index, label);
+                Instance.controls.Add(label);
+            }
+            var lbl = Instance.lblDict[Instance.index];
+            lbl.Text = content;
+            lbl.Location = pixelRect.Location;
+            lbl.Size = pixelRect.Size;
+            lbl.ForeColor = frontColor;
+            lbl.BackColor = backColor;
+
+            Instance.index++;
+        }
+
+        public static void PictureBox(Rectangle pixelRect,string path)
+        {
+
+            if (!Instance.imgDict.ContainsKey(Instance.index))
+            {
+                ResourceManager rm = ResourceManager.GetInstance();
+                PictureBox pic = new PictureBox();
+                pic.Image = rm.GetTexture(path);
+                pic.BackColor = Color.White;
+                Instance.imgDict.Add(Instance.index, pic);
+                Instance.controls.Add(pic);
+            }
+            var box = Instance.imgDict[Instance.index];
+            box.Location = pixelRect.Location;
+            box.Size = pixelRect.Size;
+            Instance.index++;
+        }
+
         public static void Button(Rectangle pixelRect, string content, Action onClick)
         {
             if (!Instance.lblDict.ContainsKey(Instance.index))
@@ -77,7 +117,6 @@ namespace Omega
             button.Location = pixelRect.Location;
             button.Size = pixelRect.Size;
             Instance.index++;
-
         }
 
 

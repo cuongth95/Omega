@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Omega
 {
-    class Scene : GameObject
+    public class Scene : GameObject
     {
         //public static System.Drawing.Graphics Graphics
         //{

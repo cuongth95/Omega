@@ -57,6 +57,7 @@ namespace Omega.Test
             }
         }
 
+
         public GridMan(GameState gs,PointF origin, float hexRadius)
         {
             this.gs = gs;
@@ -209,7 +210,9 @@ namespace Omega.Test
             {
                 if (pair.Value.IsHold)
                 {
-                    hexGrid[pair.Key].TestDrawLabel(pair.Value.Id);
+                    //hexGrid[pair.Key].TestDrawLabel(pair.Value.Id);
+
+                    hexGrid[pair.Key].TestDrawLabel(pair.Value.CountId);
                 }
             }
 

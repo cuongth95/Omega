@@ -46,32 +46,39 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Corner.cs" />
+    <Compile Include="Ai\ABNMAIPlayer.cs" />
+    <Compile Include="Ai\ABNMNode.cs" />
+    <Compile Include="Ai\RandomAIPlayer.cs" />
+    <Compile Include="Base\Corner.cs" />
+    <Compile Include="Utility\Constants.cs" />
     <Compile Include="Form1.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="Form1.Designer.cs">
       <DependentUpon>Form1.cs</DependentUpon>
     </Compile>
-    <Compile Include="GameObject.cs" />
+    <Compile Include="Base\GameObject.cs" />
     <Compile Include="GameScreen.cs" />
-    <Compile Include="Test\GameState.cs" />
-    <Compile Include="GameTime.cs" />
-    <Compile Include="GridManager.cs" />
-    <Compile Include="GUI.cs" />
-    <Compile Include="Hex.cs" />
-    <Compile Include="ICommand.cs" />
-    <Compile Include="Player.cs" />
+    <Compile Include="Base\GameState.cs" />
+    <Compile Include="Deprecated\GameTime.cs" />
+    <Compile Include="Deprecated\GridManager.cs" />
+    <Compile Include="Base\GUI.cs" />
+    <Compile Include="Base\Hex.cs" />
+    <Compile Include="Base\ICommand.cs" />
+    <Compile Include="Base\Player.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="ResourceManager.cs" />
-    <Compile Include="Scene.cs" />
-    <Compile Include="SceneManager.cs" />
-    <Compile Include="SpriteBatch.cs" />
-    <Compile Include="Stone.cs" />
-    <Compile Include="Test\GridMan.cs" />
-    <Compile Include="Test\Unit.cs" />
-    <Compile Include="Utils.cs" />
+    <Compile Include="Base\ResourceManager.cs" />
+    <Compile Include="Base\Scene.cs" />
+    <Compile Include="Base\SceneManager.cs" />
+    <Compile Include="Base\SpriteBatch.cs" />
+    <Compile Include="Deprecated\Stone.cs" />
+    <Compile Include="Base\GridMan.cs" />
+    <Compile Include="Base\Unit.cs" />
+    <Compile Include="Test\GameScreen2.cs" />
+    <Compile Include="Test\ManualPlayer.cs" />
+    <Compile Include="Utility\UnionFind.cs" />
+    <Compile Include="Utility\Utils.cs" />
     <EmbeddedResource Include="Form1.resx">
       <DependentUpon>Form1.cs</DependentUpon>
     </EmbeddedResource>
@@ -98,7 +105,9 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="Ai\" />
+    <Content Include="Resources\test_crown.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

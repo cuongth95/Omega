@@ -89,7 +89,11 @@ namespace Omega
             SetPenConfig(tempWidth,tempStartCap,tempEndCap);
 
         }
-
+        public void FillRectangle(Rectangle rect, Color color)
+        {
+            brush.Color = color;
+            g.FillRectangle(brush, rect);
+        }
         private void SetPenConfig(float width,LineCap startCap,LineCap endCap )
         {
             pen.Width = width;

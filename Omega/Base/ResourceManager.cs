@@ -1,15 +1,19 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 
 namespace Omega
 {
     class ResourceManager
     {
-
+        private string dictPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+        private string resourcePath;
         private static ResourceManager Instance;
 
         private Dictionary<string, Font> fonts;
@@ -23,6 +27,8 @@ namespace Omega
             brushes = new Dictionary<string, Brush>();
             penes = new Dictionary<string, Pen>();
             textures = new Dictionary<string, Bitmap>();
+            dictPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+            
         }
 
         public void AddFont(string name, Font font)
@@ -57,7 +63,9 @@ namespace Omega
 
             if (!textures.ContainsKey(path))
             {
-                Bitmap bmp = Image.FromFile(path, true) as Bitmap;
+                dictPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+                resourcePath = dictPath;// + @"\Resources\";
+                Bitmap bmp = Image.FromFile(resourcePath+"\\"+path, true) as Bitmap;
 
                 textures.Add(path, bmp);
                 return bmp;

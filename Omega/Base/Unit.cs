@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Omega.Utility;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -22,6 +23,8 @@ namespace Omega.Test
                 return Holder > 0;
             }   
         }
+        public int CountId { get; set; }
+
         
         public Unit(int x, int y)
         {

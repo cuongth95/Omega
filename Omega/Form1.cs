@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Omega.Test;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -18,7 +19,7 @@ namespace Omega
         private const float FRAME_RATE = 1f / 60;
 
         SpriteBatch sp;
-        GameScreen gameScreen;
+        GameScreen2 gameScreen;
         public Form1()
         {
             //InitializeComponent();
@@ -30,9 +31,9 @@ namespace Omega
             var gFrontBuffer = Graphics.FromHwnd(this.Handle);
             var graphics = Graphics.FromImage(backbuffer);
 
-            gameScreen = new GameScreen(this);
+            gameScreen = new GameScreen2(this);
 
-            GUI.SetConfig(Constants.BACKGROUND_COLOR, this.Controls);
+            GUI.SetConfig(Constants.COLOR_BACKGROUND, this.Controls);
 
             sp = SpriteBatch.GetInstance();
             sp.SetConfig(graphics, Handle, backbuffer);
@@ -44,90 +45,7 @@ namespace Omega
            
 
         }
-
-
-        //private void Form1_MouseClick(object sender, MouseEventArgs e)
-        //{
-        //    eventQueue.Enqueue(new EventHandler(EventType.MOUSE, e));
-        //}
-
-        //private void Form1_KeyDown(object sender, KeyEventArgs e)
-        //{
-        //    eventQueue.Enqueue(new EventHandler(EventType.KEYBOARD, e));
-        //}
-
-
-        private void HandleApplicationIdle(object sender, EventArgs e)
-        {
-
-            //stopWatch = new Stopwatch();
-            //gameScreen = new GameScreen();
-            //gameScreen.Graphics = graphics;
-            //gameScreen.BackBuffer = backbuffer;
-            //gameScreen.Width = this.Width;
-            //gameScreen.Height = this.Height;
-            //this.BackColor = Color.White;
-
-
-            //gameScreen.Load();
-            //gameScreen.Init();
-
-            //prevTime = 0;
-            //stopWatch.Start();
-            //while (IsApplicationIdle())
-            //{
-
-            //    var curTime = stopWatch.Elapsed.TotalMilliseconds;
-
-            //    var deltaTime = (float)(curTime - prevTime);
-            //    Console.WriteLine("elapsed time = " + deltaTime);
-            //    if (deltaTime >= FRAME_RATE)
-            //    {
-            //        gameScreen.Update(deltaTime);
-            //        //Invalidate();
-            //        Render();
-                    
-
-            //        prevTime = curTime;
-            //    }
-            //    else
-            //    {
-            //        int remainTime = (int)(FRAME_RATE - deltaTime);
-            //        System.Threading.Thread.Sleep(remainTime);
-            //    }
-
-            //    //TimeSpan currentTime = stopWatch.Elapsed;
-            //    //TimeSpan elapsedTime = currentTime - lastTime;
-            //    //lastTime = currentTime;
-
-            //    //if (elapsedTime > MaxElapsedTime)
-            //    //{
-            //    //    elapsedTime = MaxElapsedTime;
-            //    //}
-
-            //    //accumulatedTime += elapsedTime;
-
-            //    //bool updated = false;
-
-            //    //while (accumulatedTime >= TargetElapsedTime)
-            //    //{
-            //    //    Console.WriteLine("elapsed time = " + accumulatedTime.Milliseconds);
-            //    //    gameScreen.Update(accumulatedTime);
-            //    //    gameScreen.Draw();
-
-            //    //    accumulatedTime -= TargetElapsedTime;
-            //    //    updated = true;
-            //    //}
-
-            //    //if (updated)
-            //    //{
-            //    //    Invalidate();
-            //    //}
-            //}
-            //stopWatch.Stop();
-            //Application.Exit();
-        }
-
+        
         public void ProcessGameLoop()
         {
             Win32.NativeMessage msg = new Win32.NativeMessage();

@@ -8,3 +8,4 @@ D:\Maastricht\Intelligent Search & Games\Omega\Omega\Omega\obj\Debug\Omega.cspro
 D:\Maastricht\Intelligent Search & Games\Omega\Omega\Omega\obj\Debug\Omega.csproj.CoreCompileInputs.cache
 D:\Maastricht\Intelligent Search & Games\Omega\Omega\Omega\obj\Debug\Omega.exe
 D:\Maastricht\Intelligent Search & Games\Omega\Omega\Omega\obj\Debug\Omega.pdb
+D:\Maastricht\Intelligent Search & Games\Omega\Omega\Omega\bin\Debug\Resources\test_crown.png

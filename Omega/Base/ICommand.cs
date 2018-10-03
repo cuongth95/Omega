@@ -38,12 +38,24 @@ namespace Omega
             this.PresentId = PresentId;
             this.Position = position;
         }
+        public Command(CommandType type, Vector2 position)
+        {
+            cmdType = type;
+            this.Position = position;
+        }
+
         public virtual void Execute()
         {
         }
 
         public virtual void Undo()
         {
+        }
+        public Command Clone()
+        {
+            Command cmd = new Command(this.cmdType, this.PresentId, this.Position);
+            cmd.PlayerId = this.PlayerId;
+            return cmd;
         }
     }
 

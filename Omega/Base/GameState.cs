@@ -11,30 +11,49 @@ namespace Omega
     {
         public Dictionary<Vector2, Unit> Board { get { return board; } }
         private Dictionary<Vector2, Unit> board;
+        public List<Command> CommandList {get{ return commandList; } }
         private List<Command> commandList;
         private List<Command> exeCommandList;
+        public List<Player> PlayerList { get { return playerList; } }
         private List<Player> playerList;
+        public Queue<int> RoundQueue { get { return roundQueue; } }
+        private Queue<int> roundQueue;
 
-        public int MapRad { get;  private set; }
-        public int PlayRad { get;  private set;}
+        public int CurrentPlayerId { get; private set; }
+
+        public int MapRad { get; private set; }
+        public int PlayRad { get; private set; }
 
         public int HexesPerSide { get; private set; }
-        public GameState(GameState gs,bool keepPlayerList=true)
+        public GameState(GameState gs, bool doVisualize = false)
         {
             this.MapRad = gs.MapRad;
             this.PlayRad = gs.PlayRad;
             this.HexesPerSide = gs.HexesPerSide;
-
+            this.CurrentPlayerId = gs.CurrentPlayerId;
             this.board = Utils.Clone(gs.board);
-            if (keepPlayerList)
+            if (!doVisualize)
+            {
+                this.roundQueue = gs.roundQueue;
                 this.playerList = gs.playerList;
+            }
             else
+            {
+                this.roundQueue = new Queue<int>(gs.roundQueue);
                 this.playerList = Utils.Clone(gs.playerList);
+            }
             this.commandList = Utils.Clone(gs.commandList);
             this.exeCommandList = new List<Command>();
+
+            foreach (var player in playerList)
+            {
+                player.SetGameState(this);
+            }
+
         }
         public GameState(int playHexesPerSide, int hexesPerSide)
         {
+            roundQueue = new Queue<int>();
             HexesPerSide = hexesPerSide;
             exeCommandList = new List<Command>();
             commandList = new List<Command>();
@@ -42,6 +61,23 @@ namespace Omega
             board = new Dictionary<Vector2, Unit>();
             MapRad = HexesPerSide - 1;
             UpdatePlayBoard(Math.Min(playHexesPerSide - 1, MapRad));
+        }
+
+        public List<Vector2> GetAllPositions()
+        {
+            List<Vector2> posList = new List<Vector2>();
+            for (int x = -PlayRad; x <= PlayRad; x++)
+            {
+                int scopeZ1 = Math.Max(-PlayRad, -x - PlayRad);
+                int scopeZ2 = Math.Min(PlayRad, -x + PlayRad);
+
+                for (int z = scopeZ1; z <= scopeZ2; z++)
+                {
+                    var pos = new Vector2(x, z);
+                    posList.Add(pos);
+                }
+            }
+            return posList;
         }
 
         public void UpdatePlayBoard(int newPlayRad)
@@ -55,25 +91,63 @@ namespace Omega
                 for (int z = scopeZ1; z <= scopeZ2; z++)
                 {
                     var pos = new Vector2(x, z);
-                    if(!board.ContainsKey(pos))
+                    if (!board.ContainsKey(pos))
                         board.Add(pos, new Unit(pos));
                 }
             }
         }
 
+        public void ResetPlayersScore(bool doReset = false)
+        {
+            foreach (var player in playerList)
+            {
+                player.Reset();
+            }
+        }
+
+        public void RestartNewGame()
+        {
+            ResetPlayersScore();
+            ResetBoard();
+            ResetNewTurn();
+            exeCommandList.Clear();
+            commandList.Clear();
+        }
 
         public void ResetBoard()
         {
+            CurrentPlayerId = playerList[0].PlayerId;
             foreach (var unit in board)
             {
                 unit.Value.Holder = Unit.HOLDER_EMPTY;
             }
 
         }
+        public void ResetNewTurn()
+        {
+            roundQueue.Clear();
+            foreach (var player in playerList)
+            {
+                roundQueue.Enqueue(player.PlayerId);
+            }
+            
+        }
+
+        public bool IsRoundQueueEmpty()
+        {
+            return roundQueue.Count <= 0;
+        }
+
+        public int GetNextStone()
+        {
+            var presentIdOfStone = roundQueue.Dequeue();
+
+            return presentIdOfStone;
+        }
 
         public bool IsFreeAtUnit(Vector2 pos)
         {
-            if(board.ContainsKey(pos))
+            if (board.ContainsKey(pos))
             {
                 return board[pos].IsHold;
             }
@@ -115,6 +189,29 @@ namespace Omega
                 {
                     //commandList.Add(unit);
                     unit.Holder = presentId;
+                    var player = playerList.Find(x => x.PlayerId == presentId);
+                    int unionCountId= player.UnionFinder.AddPiece();
+
+                    unit.CountId = unionCountId;
+
+                    var dirs = Utils.Directions;
+                    for (int i = 0; i < dirs.Length; i++)
+                    {
+                        var direction = (Direction)dirs.GetValue(i);
+
+                        var neighborPos = unit.GetPosistionOfNeighbor(direction);
+                        if (board.ContainsKey(neighborPos)
+                            &&board[neighborPos].Holder == player.PlayerId
+                            && board[neighborPos].CountId >=0
+                            )
+                        {
+
+                            player.UnionFinder.Union(board[neighborPos].CountId, unionCountId);
+                            
+                        }
+                    }
+
+
                     return true;
                 }
                 else
@@ -135,118 +232,150 @@ namespace Omega
             this.playerList.Add(player);
         }
 
-        public List<int> GetWinner()
+        public List<int> GetWinners()
         {
             List<int> winnerList = new List<int>();
             long maxScore = 0;
 
             foreach (var player in playerList)
             {
-                if(player.Score > maxScore)
+                if (player.Score > maxScore)
                 {
                     maxScore = player.Score;
-                    if(!winnerList.Contains(player.PlayerId))
+                    if (!winnerList.Contains(player.PlayerId))
                         winnerList.Add(player.PlayerId);
                 }
             }
             return winnerList;
         }
+
+        public int GetWinner() {
+            int winnerId = -1;
+            long maxScore = 0;
+            foreach (var player in playerList)
+            {
+                if (player.Score >= maxScore)
+                {
+                    if(maxScore > 0)
+                    {
+                        //draw
+                        winnerId = 0;
+                        break;
+                    }
+                    maxScore = player.Score;
+                    winnerId = player.PlayerId;
+                }
+            }
+            return winnerId;
+
+        }
+
         public bool CheckGameOver()
         {
-            return this.board.Count - commandList.Count < Constants.NUM_OF_PLAYERS * Constants.NUM_OF_PLAYERS;
+            return CurrentPlayerId == playerList[0].PlayerId &&  this.board.Count - commandList.Count < Constants.NUM_OF_PLAYERS * Constants.NUM_OF_PLAYERS;
         }
+        
+        public void UnionFindAlgorithm()
+        {
+            foreach (var player in playerList)
+            {
+                player.Score = player.UnionFinder.GetScore();
+
+            }
+            
+        }
+
         private List<List<int>> sameRegionsList;
         int largestLabel = 0;
-        public void UpdateScores()
+        public Dictionary<Region, int> UpdateScores()
         {
             foreach (var player in playerList)
             {
                 player.Score = 1;
             }
+            sameRegionsList = new List<List<int>>();
 
-            if (CheckGameOver()){
-                sameRegionsList = new List<List<int>>();
+            for (int z = -PlayRad; z <= PlayRad; z++)
+            {
 
-                for (int z = -PlayRad; z <= PlayRad; z++)
+                int scopeX1 = Math.Max(-PlayRad, -z - PlayRad);
+                int scopeX2 = Math.Min(PlayRad, -z + PlayRad);
+
+                for (int x = scopeX1; x <= scopeX2; x++)
                 {
-
-                    int scopeX1 = Math.Max(-PlayRad, -z - PlayRad);
-                    int scopeX2 = Math.Min(PlayRad, -z + PlayRad);
-
-                    for (int x = scopeX1; x <= scopeX2; x++)
-                    {
-                        var pos = new Vector2(x, z);
-                        var unit = board[pos];
-                        TagMultiLabels(unit, playerList);
-                    }
+                    var pos = new Vector2(x, z);
+                    var unit = board[pos];
+                    TagMultiLabels(unit, playerList);
                 }
+            }
 
-                //for (int i = 0; i < sameRegionsList.Count; i++)
-                //{
-                //    Console.Write("region " + i + "-{");
-                //    for (int j = 0; j < sameRegionsList[i].Count; j++)
-                //    {
-                //        Console.Write(sameRegionsList[i][j] + ",");
-                //    }
+            //for (int i = 0; i < sameRegionsList.Count; i++)
+            //{
+            //    Console.Write("region " + i + "-{");
+            //    for (int j = 0; j < sameRegionsList[i].Count; j++)
+            //    {
+            //        Console.Write(sameRegionsList[i][j] + ",");
+            //    }
 
-                //    Console.WriteLine("}");
-                //}
+            //    Console.WriteLine("}");
+            //}
 
-                Dictionary<Region, int> regionPoints = new Dictionary<Region, int>();
-                //reupdate
-                for (int z = -PlayRad; z <= PlayRad; z++)
+            Dictionary<Region, int> regionPoints = new Dictionary<Region, int>();
+            //reupdate
+            for (int z = -PlayRad; z <= PlayRad; z++)
+            {
+
+                int scopeX1 = Math.Max(-PlayRad, -z - PlayRad);
+                int scopeX2 = Math.Min(PlayRad, -z + PlayRad);
+
+                for (int x = scopeX1; x <= scopeX2; x++)
                 {
-
-                    int scopeX1 = Math.Max(-PlayRad, -z - PlayRad);
-                    int scopeX2 = Math.Min(PlayRad, -z + PlayRad);
-
-                    for (int x = scopeX1; x <= scopeX2; x++)
+                    var pos = new Vector2(x, z);
+                    var unit = board[pos];
+                    if (unit.Id != 0)
                     {
-                        var pos = new Vector2(x, z);
-                        var unit = board[pos];
-                        if (unit.Id != 0)
+                        //merge same label into first label found
+                        foreach (var reg in sameRegionsList)
                         {
-                            //merge same label into first label found
-                            foreach (var reg in sameRegionsList)
+                            if (reg.Contains(unit.Id))
                             {
-                                if (reg.Contains(unit.Id))
-                                {
-                                    unit.Id = reg[0];
+                                unit.Id = reg[0];
 
 
-                                    break;
-                                }
+                                break;
                             }
-                            //remind code CALCULATE TOTAL POINTS AT HERE for saving
-                            var region = new Region(unit.Id, unit.Holder);
-                            if (regionPoints.ContainsKey(region))
-                            {
-                                regionPoints[region] = regionPoints[region] + 1;
-                            }
-                            else
-                            {
-                                regionPoints[region] = 1;
-                            }
+                        }
+                        //remind code CALCULATE TOTAL POINTS AT HERE for saving
+                        var region = new Region(unit.Id, unit.Holder);
+                        if (regionPoints.ContainsKey(region))
+                        {
+                            regionPoints[region] = regionPoints[region] + 1;
+                        }
+                        else
+                        {
+                            regionPoints[region] = 1;
                         }
                     }
                 }
+            }
 
-                //calculate scores of players
-                foreach (var player in playerList)
+            //calculate scores of players
+            foreach (var player in playerList)
+            {
+                player.Score = 1;
+                foreach (var pair in regionPoints)
                 {
-                    player.Score = 1;
-                    foreach (var pair in regionPoints)
+                    if (pair.Key.holderId == player.PlayerId)
                     {
-                        if (pair.Key.holderId == player.PlayerId)
-                        {
-                            player.Score *= pair.Value;
-                        }
+                        player.Score *= pair.Value;
                     }
-                    Console.WriteLine("player " + player.PlayerId + "-score= " + player.Score);
-
                 }
+                Console.WriteLine("player " + player.PlayerId + "-score= " + player.Score);
 
             }
+
+            return regionPoints;
+
         }
 
         public Unit GetNeighbor(Vector2 currPos, Direction dir)
@@ -279,7 +408,7 @@ namespace Omega
                 var topLeftUnit = GetNeighbor(pos, Direction.TopLeft);
                 var topRightUnit = GetNeighbor(pos, Direction.TopRight);
 
-                var occupiedLeft = CheckOccupied(leftUnit, side); 
+                var occupiedLeft = CheckOccupied(leftUnit, side);
                 var occupiedTopLeft = CheckOccupied(topLeftUnit, side);
                 var occupiedTopRight = CheckOccupied(topRightUnit, side);
 
@@ -330,10 +459,24 @@ namespace Omega
             return false;
         }
 
+        public void SimulateCommand(Command cmd,int playerId)
+        {
+            cmd.PlayerId = playerId;
+            cmd.PresentId = this.GetNextStone();
+            if (ExecuteCommand(cmd))
+            {
+                commandList.Add(cmd);
+            }
+            if (roundQueue.Count <= 0)
+            {
+                ResetNewTurn();
+                NextPlayer();
+            }
+        }
 
         internal void Cycle(float dt)
         {
-            
+
 
             foreach (var cmd in exeCommandList)
             {
@@ -345,6 +488,11 @@ namespace Omega
 
             exeCommandList.Clear();
 
+            if (roundQueue.Count <= 0)
+            {
+                ResetNewTurn();
+                NextPlayer();
+            }
         }
         private bool ExecuteCommand(Command cmd)
         {
@@ -352,14 +500,14 @@ namespace Omega
             {
                 return this.AddStone(cmd.PresentId, cmd.Position);
             }
-            else if(cmd.CmdType == CommandType.Undo)
+            else if (cmd.CmdType == CommandType.Undo)
             {
                 return this.RemoveStone(cmd.Position);
             }
             return false;
         }
 
-        
+
 
         public void AddCommand(Command cmd)
         {
@@ -446,9 +594,27 @@ namespace Omega
         }
 
 
-        public GameState Clone()
+        public GameState Clone(bool doVisualize = false)
         {
-            return new GameState(this);
+            return new GameState(this, doVisualize);
+        }
+        public void AssignFrom(GameState gs)
+        {
+            this.MapRad = gs.MapRad;
+            this.PlayRad = gs.PlayRad;
+            this.HexesPerSide = gs.HexesPerSide;
+            this.CurrentPlayerId = gs.CurrentPlayerId;
+            this.board = Utils.Clone(gs.board);
+            this.roundQueue = gs.roundQueue;
+            this.playerList = gs.playerList;
+             
+            this.commandList = Utils.Clone(gs.commandList);
+            this.exeCommandList = new List<Command>();
+
+            foreach (var player in playerList)
+            {
+                player.SetGameState(this);
+            }
         }
 
         public GameState Undo()
@@ -460,11 +626,30 @@ namespace Omega
                 clone.commandList.RemoveAt(clone.commandList.Count - 1);
 
                 lastCmd = new Command(CommandType.Undo, lastCmd.PresentId, lastCmd.Position);
-
                 clone.ExecuteCommand(lastCmd);
+                if (clone.commandList.Count >0 && clone.roundQueue.Count == clone.playerList.Count)
+                {
+                    clone.NextPlayer();
+                    clone.roundQueue.Dequeue();
+                }
+                else
+                {
+                    clone.ResetNewTurn();
+                }
                 return clone;
             }
             return null;
         }
+
+        private void NextPlayer()
+        {
+            //CurrentPlayerId = (CurrentPlayerId + 1) % playerList.Count;
+            CurrentPlayerId++;
+            if (CurrentPlayerId > playerList.Count)
+            {
+                CurrentPlayerId = 1;
+            }
+        }
+
     }
 }
