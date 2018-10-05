@@ -102,7 +102,7 @@ namespace Omega
         {
             foreach (var player in playerList)
             {
-                player.Reset();
+                player.Score = player.UnionFinder.GetScore();
             }
         }
 
@@ -186,6 +186,13 @@ namespace Omega
                 Unit unit = board[position];
                 if (unit.IsHold)
                 {
+                    var oldPlayerId= unit.Holder;
+                    var player = playerList.Find(x => x.PlayerId == oldPlayerId);
+
+
+                    var uf= player.UnionFinder;
+                    uf.RemoveLastPiece(unit.CountId);
+                    unit.CountId = -1;
                     unit.Holder = Unit.HOLDER_EMPTY;
                     return true;
                 }

@@ -31,6 +31,43 @@ namespace Omega.Utility
             return regionCountId;
         }
 
+        public bool RemoveLastPiece(int countId)
+        {
+            if(countId == count-1)
+            {
+                if(GetRoot(countId) == countId)
+                {
+                    if(size[countId] > 1)
+                    {
+                        int newParent = -1;
+                        for (int i = 0; i < parent.Count; i++)
+                        {
+                            if(i != countId && parent[i] == countId)
+                            {
+                                newParent = i;
+                                break;
+                            }
+                        }
+                        parent[newParent] = newParent;
+                        size[newParent] = size[countId] - 1;
+                        for (int i = 0; i < parent.Count; i++)
+                        {
+                            if (i!= newParent && i != countId && parent[i] == countId)
+                            {
+                                parent[i] = newParent;
+                            }
+                        }
+                    }
+
+                    size.RemoveAt(countId);
+                    parent.RemoveAt(countId);
+                    count--;
+                }
+                return true;
+            }
+            return false;
+        }
+
         public bool Union(int oldIndex, int newIndex)
         {
             if (parent.Count > oldIndex && parent.Count > newIndex)

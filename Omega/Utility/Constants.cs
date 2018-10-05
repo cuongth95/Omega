@@ -18,6 +18,7 @@ namespace Omega
         public readonly static PointF GRID_ORIGIN = new PointF(Constants.WINDOW_WIDTH / 2, Constants.WINDOW_HEIGHT / 2);
         public readonly static float GRID_HEX_RADIUS = 20;
 
+        public readonly static Vector2 INVALID_VECTOR2 = new Vector2(-1000, -1000);
         public readonly static Color COLOR_BACKGROUND = Color.White;
         public readonly static Color COLOR_DECORATION_RECT = Color.PaleVioletRed;
 

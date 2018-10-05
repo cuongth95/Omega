@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Omega.Test;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -73,7 +74,7 @@ namespace Omega.Evaluation
                     }
                 }
                 if (evaluation == 0)
-                    evaluation = 500;
+                    evaluation = -500;
                 else
                     evaluation = (evaluation < 0) ? -1000 : 1000;
 
@@ -133,7 +134,16 @@ namespace Omega.Evaluation
                 }
                 evaluation = Utils.Dot(myGroups, myRates) - Utils.Dot(opGroups, opRates);
             }
-            
+
+            //var count =  clone.CommandList.Count;
+            //var lastCmd = clone.CommandList[count - 1];
+            //if (lastCmd.PresentId == checkId)
+            //{
+            //    Unit unit = clone.Board[lastCmd.Position];
+            //    var numOfFreeSlot = unit.GetNumberOfFreeSlots(checkId);
+
+            //    evaluation -= numOfFreeSlot*2;
+            //}
 
             return evaluation;
         }

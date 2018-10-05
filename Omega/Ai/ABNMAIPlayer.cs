@@ -43,7 +43,7 @@ namespace Omega.Ai
         {
             if (gs.CurrentPlayerId != this.PlayerId)
                 return null;
-            if (bestPoses.Count == 0)
+            if (bestPoses.Count == 0 || bestPoses[0] == Constants.INVALID_VECTOR2)
             {
                 int alpha = -10000;
                 int beta = 10000;
@@ -57,8 +57,9 @@ namespace Omega.Ai
                 bestPos = new Vector2(-1000, -1000);
                 //MiniMax(gs,2,MAX, maxPlayer, minPlayer);
                 //maxDepth = 2;
-                bestPoses.Add(new Vector2(-1000, -1000));
-                bestPoses.Add(new Vector2(-1000, -1000));
+                bestPoses.Clear();
+                bestPoses.Add(new Vector2(Constants.INVALID_VECTOR2));
+                bestPoses.Add(new Vector2(Constants.INVALID_VECTOR2));
                 Console.WriteLine("turn " + turn);
                 turn++;
                 int sco = AB2(gs, maxDepth, alpha, beta,this.PlayerId,1);
@@ -158,7 +159,6 @@ namespace Omega.Ai
             for (int child = 0; child < successorList.Count; child++)
             {
                 value = -AB2(successorList[child], depth - 1, -beta, -alpha,uncheckId,checkId);
-                Console.WriteLine("player " + checkId + " at " + successorList[child].CommandList[beginCmdCount + 1].Position.ToString() + "," + successorList[child].CommandList[beginCmdCount + 2].Position.ToString() + "- score =" + value);
                 
                 if (value > score)
                     score = value;
@@ -168,15 +168,18 @@ namespace Omega.Ai
                     {
                         var pos = successorList[child].CommandList[beginCmdCount + 1].Position;
                         bestPoses[0] = pos;
-                        pos = successorList[child].CommandList[beginCmdCount + 2].Position;
-                        bestPoses[1] = pos;
+                        if (beginCmdCount + 2 < successorList[child].CommandList.Count)
+                        {
+                            pos = successorList[child].CommandList[beginCmdCount + 2].Position;
+                            bestPoses[1] = pos;
+                        }
                     }
-
-
                     alpha = score;
                 }
                 if (score >= beta)
+                {
                     break;
+                }
 
             }
 
@@ -231,14 +234,19 @@ namespace Omega.Ai
                 {
                     var nextState = gs.Clone(true);
                     nextState.Simulate(CommandType.MoveStone, posList[i], playerId);
-                    //childList.Add(nextState);
-                    for (int j = 0; j < posList.Count; j++)
+
+                    if (nextState.CheckGameOver())
+                        childList.Add(nextState);
+                    else
                     {
-                        if (i != j && !board[posList[j]].IsHold)
+                        for (int j = 0; j < posList.Count; j++)
                         {
-                            var childState = nextState.Clone(true);
-                            childState.Simulate(CommandType.MoveStone, posList[j], playerId);
-                            childList.Add(childState);
+                            if (i != j && !board[posList[j]].IsHold)
+                            {
+                                var childState = nextState.Clone(true);
+                                childState.Simulate(CommandType.MoveStone, posList[j], playerId);
+                                childList.Add(childState);
+                            }
                         }
                     }
                 }

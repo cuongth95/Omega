@@ -48,9 +48,10 @@ namespace Omega.Test
             //aiPlayer = new ABNMAIPlayer(2, gameState,2); //new RandomAIPlayer(2, gameState);//
 
             aiPlayer = new ABNMAIPlayer(2, gameState, 2, new int[] {
-                40,20,5,1
+                60,20,5,1
             }, new int[] {
-                40,20,5,-1
+                //60,20,5,-1
+                 50,10,5,1
             });
 
             //testAIPlayer = new ABNMAIPlayer(1, gameState, 2, new int[] {
@@ -159,7 +160,7 @@ namespace Omega.Test
             if (oldVariant != variant)
             {
                 oldVariant = variant;
-                gameState.UpdatePlayBoard(oldVariant - 1);
+                gameState.UpdatePlayBoard(variant - 1);
                 gridMan.SetupConerns();
             }
         }
@@ -171,13 +172,12 @@ namespace Omega.Test
             {
                 gameState.AssignFrom( undoState);
                 gridMan.SetGameState(gameState);
-
+                gameState.ResetPlayersScore();
                 if (flagGameOver)
                 {
                     flagGameOver = false;
 
-                    gameState.ResetPlayersScore();
-
+                    
                 }
             }
         }

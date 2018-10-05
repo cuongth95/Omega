@@ -24,13 +24,14 @@ namespace Omega
         {
             base.Init();
             nextHandler = null;
+            UnionFinder = new UnionFind();
         }
 
         public override void Reset(bool isActive = false)
         {
             nextHandler = null;
             Score = 1;
-            UnionFinder = new UnionFind();
+            //UnionFinder = new UnionFind();
         }
 
         public virtual Command GetCommand() {

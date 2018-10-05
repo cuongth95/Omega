@@ -30,17 +30,20 @@ namespace Omega.Test
         {
             this.Position = new Vector2(x,y);
             this.Holder = HOLDER_EMPTY;
+            CountId = -1;
         }
         public Unit(Vector2 Position)
         {
             this.Position = Position;
             this.Holder = HOLDER_EMPTY;
+            CountId = -1;
         }
         
         public Unit Clone()
         {
             Unit ret= new Unit(Position.X,Position.Y);
             ret.Holder = this.Holder;
+            ret.CountId = this.CountId;
             return ret;
         }
 
@@ -51,6 +54,19 @@ namespace Omega.Test
                 this.Position.Y == b.Position.Y)
                 return true;
             return false;
+        }
+
+        public int GetNumberOfFreeSlots(int checkId)
+        {
+            int freeSlots = 6;
+            var dirs = Utils.Directions;
+            for (int i = 0; i < dirs.Length; i++)
+            {
+                if (this.Neighbor((Direction)dirs.GetValue(i)).Holder == checkId)
+                    freeSlots--;
+            }
+
+            return freeSlots;
         }
 
         public Vector2 GetPosistionOfNeighbor(Direction dir)
