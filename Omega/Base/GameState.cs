@@ -11,7 +11,7 @@ namespace Omega
     {
         public Dictionary<Vector2, Unit> Board { get { return board; } }
         private Dictionary<Vector2, Unit> board;
-        public List<Command> CommandList {get{ return commandList; } }
+        public List<Command> CommandList { get { return commandList; } }
         private List<Command> commandList;
         private List<Command> exeCommandList;
         public List<Player> PlayerList { get { return playerList; } }
@@ -40,6 +40,7 @@ namespace Omega
             else
             {
                 this.roundQueue = new Queue<int>(gs.roundQueue);
+
                 this.playerList = Utils.Clone(gs.playerList);
             }
             this.commandList = Utils.Clone(gs.commandList);
@@ -130,7 +131,7 @@ namespace Omega
             {
                 roundQueue.Enqueue(player.PlayerId);
             }
-            
+
         }
 
         public bool IsRoundQueueEmpty()
@@ -138,11 +139,36 @@ namespace Omega
             return roundQueue.Count <= 0;
         }
 
-        public int GetNextStone()
+        private int GetNextStone()
         {
             var presentIdOfStone = roundQueue.Dequeue();
 
             return presentIdOfStone;
+        }
+
+        public Command GetNextStone(CommandType type, Vector2 pos)
+        {
+            if (board.ContainsKey(pos))
+            {
+                Unit unit = board[pos];
+                if (type == CommandType.MoveStone)
+                {
+                    if (!unit.IsHold)
+                    {
+                        Command ret = new Command(type, roundQueue.Dequeue(), pos);
+                        return ret;
+                    }
+                }
+                else if (type == CommandType.Undo)
+                {
+                    if (unit.Holder == roundQueue.Peek())
+                    {
+                        Command ret = new Command(type, roundQueue.Dequeue(), pos);
+                        return ret;
+                    }
+                }
+            }
+            return null;
         }
 
         public bool IsFreeAtUnit(Vector2 pos)
@@ -190,7 +216,7 @@ namespace Omega
                     //commandList.Add(unit);
                     unit.Holder = presentId;
                     var player = playerList.Find(x => x.PlayerId == presentId);
-                    int unionCountId= player.UnionFinder.AddPiece();
+                    int unionCountId = player.UnionFinder.AddPiece();
 
                     unit.CountId = unionCountId;
 
@@ -201,13 +227,13 @@ namespace Omega
 
                         var neighborPos = unit.GetPosistionOfNeighbor(direction);
                         if (board.ContainsKey(neighborPos)
-                            &&board[neighborPos].Holder == player.PlayerId
-                            && board[neighborPos].CountId >=0
+                            && board[neighborPos].Holder == player.PlayerId
+                            && board[neighborPos].CountId >= 0
                             )
                         {
 
                             player.UnionFinder.Union(board[neighborPos].CountId, unionCountId);
-                            
+
                         }
                     }
 
@@ -250,41 +276,48 @@ namespace Omega
         }
 
         public int GetWinner() {
-            int winnerId = -1;
-            long maxScore = 0;
-            foreach (var player in playerList)
-            {
-                if (player.Score >= maxScore)
-                {
-                    if(maxScore > 0)
-                    {
-                        //draw
-                        winnerId = 0;
-                        break;
-                    }
-                    maxScore = player.Score;
-                    winnerId = player.PlayerId;
-                }
-            }
-            return winnerId;
+            //int winnerId = playerList[0].PlayerId;
+            //long maxScore = playerList[0].Score;
+
+            if (playerList[1].Score == playerList[0].PlayerId)
+                return 0;
+            else if (playerList[1].Score > playerList[0].PlayerId)
+                return playerList[1].PlayerId;
+            else
+                return playerList[0].PlayerId;
+
+
+            //foreach (var player in playerList)
+            //{
+            //    if (player.Score >= maxScore)
+            //    {
+            //        if (maxScore > 0)
+            //        {
+            //            //draw
+            //            winnerId = 0;
+            //            break;
+            //        }
+            //        maxScore = player.Score;
+            //        winnerId = player.PlayerId;
+            //    }
+            //}
+            //return winnerId;
 
         }
 
         public bool CheckGameOver()
         {
-            return CurrentPlayerId == playerList[0].PlayerId &&  this.board.Count - commandList.Count < Constants.NUM_OF_PLAYERS * Constants.NUM_OF_PLAYERS;
+            return CurrentPlayerId == playerList[0].PlayerId && this.board.Count - commandList.Count < Constants.NUM_OF_PLAYERS * Constants.NUM_OF_PLAYERS;
         }
-        
+
         public void UnionFindAlgorithm()
         {
+
             foreach (var player in playerList)
             {
                 player.Score = player.UnionFinder.GetScore();
-
             }
-            
         }
-
         private List<List<int>> sameRegionsList;
         int largestLabel = 0;
         public Dictionary<Region, int> UpdateScores()
@@ -458,6 +491,29 @@ namespace Omega
             }
             return false;
         }
+
+        public void Simulate(CommandType type ,Vector2 pos, int playerId)
+        {
+            var cmd = this.GetNextStone(type, pos);
+            if (cmd == null)
+            {
+                throw new NullReferenceException("GameState-Simulate-Cmd is null because of same pos or wrong pos");
+            }
+            else
+            {
+                cmd.PlayerId = playerId;
+                if (ExecuteCommand(cmd))
+                {
+                    commandList.Add(cmd);
+                }
+                if (roundQueue.Count <= 0)
+                {
+                    ResetNewTurn();
+                    NextPlayer();
+                }
+            }
+        }
+            
 
         public void SimulateCommand(Command cmd,int playerId)
         {

@@ -18,8 +18,11 @@ namespace Omega.Test
 
         public void NextCommand(Command cmd)
         {
-            this.nextCommand = cmd;
-            this.nextCommand.PlayerId = this.PlayerId;
+            if (cmd != null)
+            {
+                this.nextCommand = cmd;
+                this.nextCommand.PlayerId = this.PlayerId;
+            }
         }
     }
 }

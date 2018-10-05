@@ -14,15 +14,17 @@ namespace Omega.Test
         private GameState gameState;
         private GridMan gridMan;
         private ManualPlayer huPlayer;
-        private Player aiPlayer;
+        private ABNMAIPlayer testAIPlayer;
+        private ABNMAIPlayer aiPlayer;
         private Form mainForm;
         private int variant;
         private int oldVariant = 0;
         private string debug;
-        private bool isFirstTime;
+        private bool flagGameOver;
         private SpriteBatch sp;
         private Rectangle decoRect;
         private bool debugAIPerTurn;
+        private bool debugTestAIPerTurn;
 
         private Color currentColor;
 
@@ -40,8 +42,22 @@ namespace Omega.Test
 
             //human player
             huPlayer = new ManualPlayer(1,gameState);
+            
             //ai player
-            aiPlayer = new RandomAIPlayer(2, gameState);//new ABNMAIPlayer(2, gameState,2); //
+
+            //aiPlayer = new ABNMAIPlayer(2, gameState,2); //new RandomAIPlayer(2, gameState);//
+
+            aiPlayer = new ABNMAIPlayer(2, gameState, 2, new int[] {
+                40,20,5,1
+            }, new int[] {
+                40,20,5,-1
+            });
+
+            //testAIPlayer = new ABNMAIPlayer(1, gameState, 2, new int[] {
+            //    10,5,8
+            //}, new int[] {
+            //    15,5,10
+            //});
 
             //comon settings
             decoRect = new Rectangle(0, 0, 256, 256);
@@ -53,10 +69,14 @@ namespace Omega.Test
             base.Init();
             huPlayer.Init();
             aiPlayer.Init();
+            //testAIPlayer.Init();
             gridMan.Init();
             //register new player
             gameState.AddPlayer(huPlayer);
+            //gameState.AddPlayer(testAIPlayer);
             gameState.AddPlayer(aiPlayer);
+
+            //gameState.UpdatePlayBoard(2);
             //reset new game
             Reset();
         }
@@ -67,7 +87,8 @@ namespace Omega.Test
             gameState.RestartNewGame();
             gridMan.SetGameState(gameState);
             debugAIPerTurn = false;
-            isFirstTime = false;
+            debugTestAIPerTurn = false;
+            flagGameOver = false;
         }
 
         public override void Load()
@@ -87,11 +108,11 @@ namespace Omega.Test
             {
                 debug = "raw pos =" + point.ToString() + "\n";
                 var transformedPos = Utils.PixelToPosition(point, Constants.GRID_ORIGIN, Constants.GRID_HEX_RADIUS);
-                
-                if (!gameState.CheckGameOver() && gridMan.IsPositionInPlayScope(transformedPos))
+
+                if (!gameState.CheckGameOver() && gameState.Board.ContainsKey(transformedPos) && !flagGameOver)
                 {
-                    var presentIdOfStone = gameState.GetNextStone();
-                    huPlayer.NextCommand(new Command(CommandType.MoveStone, presentIdOfStone, transformedPos));
+                    Command nextCommand = gameState.GetNextStone(CommandType.MoveStone, transformedPos);
+                    huPlayer.NextCommand(nextCommand);
                     debug += "tfpos=" + transformedPos.ToString();
                 }
                 else
@@ -135,7 +156,6 @@ namespace Omega.Test
             {
                 Reset();
             }
-
             if (oldVariant != variant)
             {
                 oldVariant = variant;
@@ -152,9 +172,9 @@ namespace Omega.Test
                 gameState.AssignFrom( undoState);
                 gridMan.SetGameState(gameState);
 
-                if (isFirstTime)
+                if (flagGameOver)
                 {
-                    isFirstTime = false;
+                    flagGameOver = false;
 
                     gameState.ResetPlayersScore();
 
@@ -176,9 +196,9 @@ namespace Omega.Test
                         gameState.AssignFrom(prevPrevUndoState);
                         gridMan.SetGameState(gameState);
 
-                        if (isFirstTime)
+                        if (flagGameOver)
                         {
-                            isFirstTime = false;
+                            flagGameOver = false;
 
                             gameState.ResetPlayersScore();
 
@@ -187,32 +207,36 @@ namespace Omega.Test
                 }
             }
         }
+
+
+        int testMatches = -1;
         public override void Update(float dt)
         {
-            if (!gameState.CheckGameOver())
+            if (!flagGameOver)
             {
-                Command command1 = huPlayer.GetCommand();
-                Command command2 = null;
-                if (debugAIPerTurn)
+                if (!gameState.CheckGameOver())
                 {
-                    command2 = aiPlayer.GetCommand();
-                    debugAIPerTurn = false;
+                    Command command1 = huPlayer.GetCommand();
+                    Command command2 = null;
+                   
+                    if (debugAIPerTurn)
+                    {
+                        command2 = aiPlayer.GetCommand();
+                        debugAIPerTurn = false;
+                    }
+                    gameState.AddCommand(command1);
+                    gameState.AddCommand(command2);
+
+                    gameState.Cycle(dt);
+
+                    if (gameState.CurrentPlayerId == 1)
+                        decoRect = new Rectangle(Width - 256, 0, 256, 128);
+                    else
+                        decoRect = new Rectangle(Width - 256, Height - 128, 256, 128);
                 }
-                gameState.AddCommand(command1);
-                gameState.AddCommand(command2);
-
-                gameState.Cycle(dt);
-
-                if (gameState.CurrentPlayerId == 1)
-                    decoRect = new Rectangle(Width - 256, 0, 256, 128);
                 else
-                    decoRect = new Rectangle(Width - 256, Height - 128, 256, 128);
-            }
-            else
-            {
-                if (!isFirstTime)
                 {
-                    isFirstTime = true;
+
                     //calculate score
                     //gameState.UpdateScores();
                     gameState.UnionFindAlgorithm();
@@ -223,10 +247,17 @@ namespace Omega.Test
                     //aiPlayer.GameOver(gameState.GetWinners());
 
                     huPlayer.GameOver(gameState.GetWinner());
+                    //testAIPlayer.GameOver(gameState.GetWinner());
                     aiPlayer.GameOver(gameState.GetWinner());
 
+                    testMatches++;
+
+
+
+                    //Reset();
                 }
             }
+
         }
         public override void Draw()
         {
@@ -243,16 +274,21 @@ namespace Omega.Test
             GUI.Label(new Rectangle(0, Height / 2, 100, 100), "debug  =" + debug);
             GUI.Label(new Rectangle(Width / 2 - 64, 16, 128, 16), "CURRENT PLAYER-" + gameState.CurrentPlayerId);
             GUI.Label(new Rectangle(Width / 2 - 64, 48, 128, 16), "PLAYER"+huPlayer.PlayerId+"_SCORE:" + huPlayer.Score);
+            //GUI.Label(new Rectangle(Width / 2 - 64, 48, 128, 16), "PLAYER" + testAIPlayer.PlayerId + "_SCORE:" + testAIPlayer.Score);
             GUI.Label(new Rectangle(Width / 2 - 64, 64, 128, 16), "PLAYER" + aiPlayer.PlayerId + "SCORE:" + aiPlayer.Score);
             
             if (gameState.CurrentPlayerId == 1)
             {
                 GUI.Label(new Rectangle(Width - 64, 64, 128, 16), "PLAYER " + huPlayer.PlayerId, Color.Black, currentColor);
+                //GUI.Label(new Rectangle(Width - 64, 64, 128, 16), "PLAYER " + testAIPlayer.PlayerId, Color.Black, currentColor);
+
                 GUI.Label(new Rectangle(Width - 64, Height - 64, 128, 16), "PLAYER " + aiPlayer.PlayerId, Color.Black, Color.White);
             }
             else
             {
                 GUI.Label(new Rectangle(Width - 64, 64, 128, 16), "PLAYER " + huPlayer.PlayerId, Color.Black, Color.White);
+                //GUI.Label(new Rectangle(Width - 64, 64, 128, 16), "PLAYER " + testAIPlayer.PlayerId, Color.Black, Color.White);
+
                 GUI.Label(new Rectangle(Width - 64, Height - 64, 128, 16), "PLAYER " + aiPlayer.PlayerId, Color.Black, currentColor);
             }
 

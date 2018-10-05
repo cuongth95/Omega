@@ -51,9 +51,8 @@ namespace Omega.Ai
 
 
             } while (!gs.Board.ContainsKey(ranPos)|| gs.Board[ranPos].IsHold);
-            bestMove = new Command(CommandType.MoveStone, gs.GetNextStone(), ranPos);
 
-            this.nextCommand = bestMove;
+            this.nextCommand = gs.GetNextStone(CommandType.MoveStone,ranPos);
             this.nextCommand.PlayerId = this.PlayerId;
             return base.GetCommand();
         }

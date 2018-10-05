@@ -81,6 +81,30 @@ namespace Omega.Utility
             return find;
         }
 
+        public long GetScore(out List<int> groupSizes)
+        {
+            long score = 1;
+
+            groupSizes = new List<int>();
+            List<int> roots = new List<int>();
+
+            for (int i = 0; i < parent.Count; i++)
+            {
+                var root = GetRoot(i);
+                if (!roots.Contains(root))
+                    roots.Add(root);
+            }
+
+            foreach (var root in roots)
+            {
+                int size = FindSize(root);
+                score *= size;
+                groupSizes.Add(size);
+            }
+
+            return score;
+        }
+
         internal long GetScore()
         {
             long score = 1;
@@ -101,6 +125,24 @@ namespace Omega.Utility
             return score;
         }
 
-        
+        public List<int> GetGroupSizes()
+        {
+            List<int> groupSizes = new List<int>();
+
+            List<int> roots = new List<int>();
+            for (int i = 0; i < parent.Count; i++)
+            {
+                var root = GetRoot(i);
+                if (!roots.Contains(root))
+                    roots.Add(root);
+            }
+
+            foreach (var root in roots)
+            {
+                groupSizes.Add(FindSize(root));
+            }
+
+            return groupSizes;
+        }
     }
 }

@@ -139,6 +139,19 @@ namespace Omega
     public class Utils
     {
         public static Array Directions = Enum.GetValues(typeof(Direction));
+        private static Random rng = new Random();
+        public static void Shuffle<T>( IList<T> list)
+        {
+            int n = list.Count;
+            while (n > 1)
+            {
+                n--;
+                int k = rng.Next(n + 1);
+                T value = list[k];
+                list[k] = list[n];
+                list[n] = value;
+            }
+        }
 
         public static List<Player> Clone(List<Player> list)
         {
@@ -174,7 +187,22 @@ namespace Omega
 
             return temp;
         }
-
+        public static int Dot(int[] x, int[] y)
+        {
+            if (x.Length != y.Length) throw new NullReferenceException("Illegal vector dimensions.");
+            int sum = 0;
+            for (int i = 0; i < x.Length; i++)
+                sum += x[i] * y[i];
+            return sum;
+        }
+        public static float Dot(float[] x, float[] y)
+        {
+            if (x.Length != y.Length) throw new NullReferenceException("Illegal vector dimensions.");
+            float sum = 0f;
+            for (int i = 0; i < x.Length; i++)
+                sum += x[i] * y[i];
+            return sum;
+        }
         public static PointF PositionToPixel(Vector2 pos,PointF origin, float radius)
         {
             
