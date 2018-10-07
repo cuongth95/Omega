@@ -1,14 +1,18 @@
-﻿using Omega.Evaluation;
+﻿using Omega.Ai.TT;
+using Omega.Evaluation;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Timers;
 
 namespace Omega.Ai
 {
     public class ABNMAIPlayer : Player
     {
+        private TransitionalTable tt;
         private int childNodes;
         private int leafNodes;
         private int maxDepth;
@@ -28,23 +32,218 @@ namespace Omega.Ai
             this.leafNodes = p.leafNodes;
         }
 
-        public ABNMAIPlayer(int playerId, GameState gs,int maxDepth, int[]myRates,int[]opRates):this(playerId,gs,maxDepth)
+        public ABNMAIPlayer(int playerId, GameState gs, int maxDepth, int[] myRates, int[] opRates) : this(playerId, gs, maxDepth)
         {
             ef = new LinearEvaluateFunction(this.PlayerId, myRates, opRates);
+            stopWatch = new Stopwatch();
+            tt = new TransitionalTable();
+            tt.InitZobrishTable(gs);
+        }
+        public void ReinitZobrishTable(GameState gs)
+        {
+            tt.InitZobrishTable(gs);
         }
 
         public override void Reset(bool isActive = false)
         {
             base.Reset(isActive);
         }
+        List<Vector2> bestPoses;
         private int turn = 0;
+        private int prun = 0;
         private int beginCmdCount;
+        private long visitedNodes = 0;
+        private Stopwatch stopWatch;
         public override Command GetCommand()
         {
             if (gs.CurrentPlayerId != this.PlayerId)
                 return null;
+            GetCommandAB2();
+            //GetCommandABTT();
+            return base.GetCommand();
+        }
+
+
+        #region TT + NEGAMAX
+        //TT + negamax
+        private void GetCommandABTT()
+        {
             if (bestPoses.Count == 0 || bestPoses[0] == Constants.INVALID_VECTOR2)
             {
+                Console.WriteLine("turn " + turn);
+                turn++;
+
+                visitedNodes = 0;
+                prun = 0;
+                int alpha = -10000;
+                int beta = 10000;
+                beginCmdCount = gs.CommandList.Count - 1;
+
+                stopWatch.Start();
+                int sco = ABTT(gs, maxDepth, alpha, beta, this.PlayerId, this.PlayerId- 1);
+                stopWatch.Stop();
+
+                Console.WriteLine("final score = " + sco + " | searched " + visitedNodes + " nodes| prun "+prun+" | " + stopWatch.ElapsedMilliseconds/1000 + "s");
+                stopWatch.Reset();
+                nextCommand = gs.GetNextStone(CommandType.MoveStone, bestPoses[0]);
+                bestPoses.RemoveAt(0);
+            }
+            else
+            {
+                nextCommand = gs.GetNextStone(CommandType.MoveStone, bestPoses[0]);
+                bestPoses.RemoveAt(0);
+            }
+        }
+
+        private int ABTT(GameState gs, int depth, int alpha, int beta, int checkId, int uncheckId)
+        {
+            //measure 
+            visitedNodes++;
+
+            //algorithm init values
+            int oldAlpha = alpha;
+            int bestValue = 0;
+            int value = 0;
+
+            //TT
+            var property = tt.Retrieve(gs);
+            if (property.depth > depth)
+            {
+                if (property.flag == TFlag.EXACT_VALUE)
+                {
+                    return property.score;
+                }
+                else if (property.flag == TFlag.LOWER_BOUND)
+                {
+                    alpha = Math.Max(alpha, property.score);
+                }
+                else
+                {
+                    beta = Math.Min(beta, property.score);
+                }
+                if (alpha >= beta)
+                {
+                    prun++;
+                    return property.score;
+                }
+            }
+
+            // negamax
+            bool gameOver = gs.CheckGameOver();
+            if (depth == 0 || gameOver)
+            {
+                ef.checkId = checkId;
+                return ef.Evaluate(gs); //- TestEvaluate(gs);//Evaluate(gs,this.PlayerId);//
+            }
+
+            if (property.depth > 0)
+            {
+                //do negamax on gamestate in tt first
+                GameState betterState = GenerateByPos(property.bestPoses, gs, 2);
+                if (betterState == null)
+                {
+                    throw new NullReferenceException("ABTT-betterState is null");
+                }
+                bestValue = -ABTT(betterState, depth - 1, -beta, -alpha, uncheckId, checkId);
+
+                if (depth == maxDepth)
+                {
+                    bestPoses.Clear();
+                    bestPoses.AddRange(property.bestPoses);
+                }
+                if (bestValue >= beta)
+                {
+                    prun++;
+                    StoreToTable(oldAlpha, beta, gs, property.bestPoses, bestValue, depth);
+                }
+            }
+            else
+            {
+                bestValue = -10000;
+                List<GameState> successorList = GenerateForTwo(gs, 2);
+                //Utils.Shuffle<GameState>(successorList);
+                for (int child = 0; child < successorList.Count; child++)
+                {
+                    value = -ABTT(successorList[child], depth - 1, -beta, -alpha, uncheckId, checkId);
+
+                    if (value > bestValue)
+                    {
+                        bestValue = value;
+                        if (depth == maxDepth)
+                        {
+                            bestPoses.Clear();
+                            bestPoses.Add(successorList[child].CommandList[beginCmdCount + 1].Position);
+                            if (beginCmdCount + 2 < successorList[child].CommandList.Count)
+                            {
+                                bestPoses.Add(successorList[child].CommandList[beginCmdCount + 2].Position);
+                            }
+                        }
+                        if (bestValue > alpha)
+                        {
+                            alpha = bestValue;
+                        }
+                        if (bestValue >= beta)
+                        {
+                            prun++;
+                            List<Vector2> bestMoves = new List<Vector2>();
+
+                            int count = gs.CommandList.Count;
+                            for (int i = count; i < successorList[child].CommandList.Count; i++)
+                            {
+                                bestMoves.Add(successorList[child].CommandList[i].Position);
+                            }
+                            
+                            //update TT
+                            StoreToTable(oldAlpha, beta, gs, bestMoves, bestValue, depth);
+                            break;
+                        }
+                    }
+                }
+            }
+            return bestValue;
+        }
+
+        public void StoreToTable(int alpha, int beta, GameState state, List<Vector2> bestMoves, int bestValue, int depth)
+        {
+            TFlag ttFlag;
+            if (bestValue <= alpha)
+                ttFlag = TFlag.UPPER_BOUND;
+            else if (bestValue >= beta)
+                ttFlag = TFlag.LOWER_BOUND;
+            else
+                ttFlag = TFlag.EXACT_VALUE;
+
+            List<Vector2> cachedList = new List<Vector2>();
+            foreach (var bestMove in bestMoves)
+            {
+                if (bestMove != Constants.INVALID_VECTOR2)
+                {
+                    cachedList.Add(bestMove);
+                }
+            }
+            if (cachedList.Count > 0)
+            {
+                if(!tt.TryToStore(state, cachedList, bestValue, ttFlag, depth))
+                {
+                    throw new NullReferenceException("tt.TryToStore- collision");
+                }
+            }
+            else
+            {
+                throw new NullReferenceException("StoreToTable- cached list length is 0");
+            }
+        }
+        #endregion
+
+
+        #region NEGAMAX
+        //negamax
+        private void GetCommandAB2()
+        {
+            if (bestPoses.Count == 0 || bestPoses[0] == Constants.INVALID_VECTOR2)
+            {
+                prun = 0;
+                visitedNodes = 0;
                 int alpha = -10000;
                 int beta = 10000;
                 int maxPlayer = this.PlayerId;
@@ -54,16 +253,19 @@ namespace Omega.Ai
                 //this.nextCommand = bestMove;
                 //AB(gs, maxDepth,maxPlayer, minPlayer, alpha, beta);
                 beginCmdCount = gs.CommandList.Count - 1;
-                bestPos = new Vector2(-1000, -1000);
                 //MiniMax(gs,2,MAX, maxPlayer, minPlayer);
                 //maxDepth = 2;
                 bestPoses.Clear();
                 bestPoses.Add(new Vector2(Constants.INVALID_VECTOR2));
                 bestPoses.Add(new Vector2(Constants.INVALID_VECTOR2));
+
                 Console.WriteLine("turn " + turn);
                 turn++;
-                int sco = AB2(gs, maxDepth, alpha, beta,this.PlayerId,1);
-                Console.WriteLine("final score = " + sco);
+                stopWatch.Start();
+                int sco = AB2(gs, maxDepth, alpha, beta, this.PlayerId, 1);
+                stopWatch.Stop();
+                Console.WriteLine("final score = " + sco + " | searched " + visitedNodes + " nodes| prun " + prun + " | " + stopWatch.ElapsedMilliseconds / 1000 + "s");
+                stopWatch.Reset();
                 //int sco= AB(gs, 7, alpha, beta);
                 //nextCommand = gs.GetNextStone(CommandType.MoveStone, bestPos);
                 nextCommand = gs.GetNextStone(CommandType.MoveStone, bestPoses[0]);
@@ -74,77 +276,10 @@ namespace Omega.Ai
                 nextCommand = gs.GetNextStone(CommandType.MoveStone, bestPoses[0]);
                 bestPoses.RemoveAt(0);
             }
-            return base.GetCommand();
         }
-
-        List<Vector2> bestPoses;
-        private Vector2 bestPos;
-        private Command GetBestMove(GameState initGameState, int maxPlayer, int minPlayer, int alpha, int beta)
+        private int AB2(GameState gs, int depth, int alpha, int beta, int checkId, int uncheckId)
         {
-            Command best = null;
-
-            ABNMNode head = null;
-
-            head = new ABNMNode(ABNMNode.TYPE_MAX_NODE, maxDepth, initGameState, alpha, beta);
-
-            
-            
-
-            return best;
-
-        }
-        const int  MAX = 1;
-        const int  MIN = 2;
-        private int MiniMax(GameState gs, int depth,int type,int maxPlayerId,int minPLayerId)
-        {
-            int oldScore = 0;
-            int score = 0;
-            int value = 0;
-            bool gameOver = gs.CheckGameOver();
-            if (depth == 0 || gameOver)
-            {
-                return Evaluate(gs, this.PlayerId);
-            }
-            if (type == MAX)//max
-            {
-                score = -10000;
-                List<GameState> successorList = Generate(gs, this.PlayerId);
-                for (int child = 0; child < successorList.Count; child++)
-                {
-                    if (successorList[child].RoundQueue.Count == gs.PlayerList.Count)
-                        value = MiniMax(successorList[child], depth - 1, MIN,  minPLayerId, maxPlayerId);
-                    else
-                        value = MiniMax(successorList[child], depth - 1, MAX,maxPlayerId,minPLayerId);
-                    if (value > score )
-                    {
-                        score = value;
-
-                        var numOfCommands = successorList[child].CommandList.Count;
-                        bestPos = successorList[child].CommandList[beginCmdCount + 1].Position;
-                        
-                    }
-                }
-            }
-            else if(type == MIN)//min
-            {
-                score = 10000;
-                List<GameState> successorList = Generate(gs, this.PlayerId-1);
-                for (int child = 0; child < successorList.Count; child++)
-                {
-                    if (gs.RoundQueue.Count <= 0 || gs.RoundQueue.Count == gs.PlayerList.Count)
-                        value = MiniMax(successorList[child], depth - 1, MAX, minPLayerId, maxPlayerId);
-                    else
-                        value = MiniMax(successorList[child], depth - 1, MIN,maxPlayerId,minPLayerId);
-                    if (value < score)
-                    {
-                        score = value;
-                    }
-                }
-            }
-            return score;
-        }
-        private int AB2(GameState gs, int depth, int alpha, int beta,int checkId,int uncheckId)
-        {
+            visitedNodes++;
             int score = 0;
             int value = 0;
             bool gameOver = gs.CheckGameOver();
@@ -154,12 +289,12 @@ namespace Omega.Ai
                 return ef.Evaluate(gs); //- TestEvaluate(gs);//Evaluate(gs,this.PlayerId);//
             }
             score = -10000;
-            List<GameState> successorList = GenerateForTwo(gs, 2);
-            Utils.Shuffle<GameState>(successorList);
+            List<GameState> successorList = GenerateForTwo(gs, checkId);
+            //Utils.Shuffle<GameState>(successorList);
             for (int child = 0; child < successorList.Count; child++)
             {
-                value = -AB2(successorList[child], depth - 1, -beta, -alpha,uncheckId,checkId);
-                
+                value = -AB2(successorList[child], depth - 1, -beta, -alpha, uncheckId, checkId);
+
                 if (value > score)
                     score = value;
                 if (score > alpha)
@@ -178,6 +313,7 @@ namespace Omega.Ai
                 }
                 if (score >= beta)
                 {
+                    prun++;
                     break;
                 }
 
@@ -185,42 +321,50 @@ namespace Omega.Ai
 
             return score;
         }
-        
-        
 
-        private int AB(GameState gs,int depth,  int alpha,int beta)
+        #endregion
+
+
+        private GameState GenerateByPos(List<Vector2> poses, GameState gs, int playerId)
         {
-            int score=0;
-            int value = 0;
-            bool gameOver = gs.CheckGameOver();
-            if(depth == 0 || gameOver)
-            {
-                return TestEvaluate(gs);//Evaluate(gs,this.PlayerId);//
-            }
-            score = -10000;
-            List<GameState> successorList =  Generate(gs,2);
-            for (int child = 0; child < successorList.Count; child++)
-            {
-                if (successorList[child].RoundQueue.Count == gs.PlayerList.Count)
-                    value = AB(successorList[child], depth - 1, alpha, beta);
-                else
-                    value = -AB(successorList[child], depth - 1, -beta, -alpha);
+            GameState childState = null;
 
-                if (value > score)
-                    score = value;
-                if (score > alpha)
+            if (poses.Count == 1)
+            {
+                var pos = poses[0];
+                if (!gs.Board[pos].IsHold)
                 {
-                    alpha = score;
-                    bestPos = successorList[child].CommandList[beginCmdCount + 1].Position;
-
+                    childState = gs.Clone(true);
+                    childState.Simulate(CommandType.MoveStone, pos, playerId);
                 }
-                if (score >= beta)
-                    break;
-
             }
-
-            return score;
+            else if(poses.Count == 2)
+            {
+                if (!gs.Board[poses[0]].IsHold)
+                {
+                    var nextState = gs.Clone(true);
+                    nextState.Simulate(CommandType.MoveStone, poses[0], playerId);
+                    if (nextState.CheckGameOver() || poses[0].Equals(poses[1]))
+                    {
+                        childState = nextState;
+                        
+                    }
+                    else
+                    {
+                        if (!nextState.Board[poses[1]].IsHold)
+                        {
+                            childState = nextState.Clone(true);
+                            childState.Simulate(CommandType.MoveStone, poses[1], playerId);
+                            
+                        }
+                    }
+                }
+            }
+            return childState;
         }
+
+
+
         private List<GameState> GenerateForTwo(GameState gs, int playerId)
         {
             List<GameState> childList = new List<GameState>();
@@ -499,83 +643,7 @@ namespace Omega.Ai
 
             return evaluation;
         }
-
-        //private int ABNM(ABNMNode node)
-        //{
-        //    int score = 0;
-        //    int value = 0;
-
-        //    if(node.depth == 0)
-        //    {
-        //        return Evaluate(node.gs);
-        //    }
-
-        //    node.childNodeList = Generate(node);
-
-        //    if(node.childNodeList.Count <=0)
-        //    {
-        //        return Evaluate(node.gs);
-        //    }
-        //    score = -10000;
-        //    for (int i = 0; i < node.childNodeList.Count; i++)
-        //    {
-        //        var childNode = node.childNodeList[i];
-        //        Make(childNode);// execute move
-        //        childNode.alpha = -node.beta;
-        //        childNode.beta = -Math.Max(node.alpha,score);
-        //        childNode.depth = node.depth - 1;
-        //        value = -ABNM(childNode);
-
-        //        if(value > score)
-        //        {
-        //            score = value;
-        //        }
-        //        Undo(childNode);
-        //        if(score >= node.beta)
-        //        {
-        //            //prunning
-        //            return score;
-        //        }
-        //    }
-
-        //    return score;
-        //}
-
-        //private void Undo(ABNMNode node)
-        //{
-        //    node.gs= node.gs.Undo();
-        //}
-
-        //private void Make(ABNMNode node)
-        //{
-
-        //}
-
-        //private List<ABNMNode> Generate(ABNMNode node)
-        //{
-        //    List<ABNMNode> childList = new List<ABNMNode>();
-        //    var board = node.gs.Board;
-        //    var posList = node.gs.GetAllPositions();
-
-        //    for (int i = 0; i < posList.Count; i++)
-        //    {
-        //        if (!board[posList[i]].IsHold)
-        //        {
-        //            for (int j = 0; j < posList.Count; j++)
-        //            {
-        //                if(j!= i && !board[posList[j]].IsHold)
-        //                {
-        //                    ABNMNode newNode = new ABNMNode(ABNMNode.TYPE_MIN_NODE,node.depth-1,)
-        //                }
-        //            }
-        //        }
-        //    }
-
-
-        //    return childList;
-        //}
         
-
 
     }
 }

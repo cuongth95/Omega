@@ -48,10 +48,11 @@ namespace Omega.Test
             //aiPlayer = new ABNMAIPlayer(2, gameState,2); //new RandomAIPlayer(2, gameState);//
 
             aiPlayer = new ABNMAIPlayer(2, gameState, 2, new int[] {
-                60,20,5,1
+                //60,20,5,1
+                60,20,15,1
             }, new int[] {
                 //60,20,5,-1
-                 50,10,5,1
+                100,10,5,-1
             });
 
             //testAIPlayer = new ABNMAIPlayer(1, gameState, 2, new int[] {
@@ -74,8 +75,8 @@ namespace Omega.Test
             gridMan.Init();
             //register new player
             gameState.AddPlayer(huPlayer);
-            //gameState.AddPlayer(testAIPlayer);
             gameState.AddPlayer(aiPlayer);
+            //gameState.AddPlayer(testAIPlayer);
 
             //gameState.UpdatePlayBoard(2);
             //reset new game
@@ -161,6 +162,7 @@ namespace Omega.Test
             {
                 oldVariant = variant;
                 gameState.UpdatePlayBoard(variant - 1);
+                aiPlayer.ReinitZobrishTable(gameState);
                 gridMan.SetupConerns();
             }
         }

@@ -18,13 +18,11 @@ namespace Omega
         private List<Player> playerList;
         public Queue<int> RoundQueue { get { return roundQueue; } }
         private Queue<int> roundQueue;
-
         public int CurrentPlayerId { get; private set; }
-
         public int MapRad { get; private set; }
         public int PlayRad { get; private set; }
-
         public int HexesPerSide { get; private set; }
+
         public GameState(GameState gs, bool doVisualize = false)
         {
             this.MapRad = gs.MapRad;
@@ -98,6 +96,13 @@ namespace Omega
             }
         }
 
+        public void ResetPlayers()
+        {
+            foreach (var player in playerList)
+            {
+                player.Reset();
+            }
+        }
         public void ResetPlayersScore(bool doReset = false)
         {
             foreach (var player in playerList)
@@ -108,6 +113,7 @@ namespace Omega
 
         public void RestartNewGame()
         {
+            ResetPlayers();
             ResetPlayersScore();
             ResetBoard();
             ResetNewTurn();

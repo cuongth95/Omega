@@ -3,10 +3,17 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace Omega
 {
+    public enum TFlag
+    {
+        UPPER_BOUND=0,
+        LOWER_BOUND=1,
+        EXACT_VALUE=2
+    }
     
     public enum EventType
     {
@@ -44,7 +51,7 @@ namespace Omega
             return (T)bundle[key];
         }
     }
-
+    [System.Serializable]
     public struct Vector2
     {
         
@@ -134,13 +141,13 @@ namespace Omega
             this.holderId = holderId;
         }
     }
-    
+
 
     public class Utils
     {
         public static Array Directions = Enum.GetValues(typeof(Direction));
         private static Random rng = new Random();
-        public static void Shuffle<T>( IList<T> list)
+        public static void Shuffle<T>(IList<T> list)
         {
             int n = list.Count;
             while (n > 1)
@@ -152,7 +159,17 @@ namespace Omega
                 list[n] = value;
             }
         }
+        public static List<Vector2> Clone(List<Vector2> list)
+        {
+            List<Vector2> ret = new List<Vector2>();
 
+            foreach (var item in list)
+            {
+                ret.Add(new Vector2(item));
+            }
+
+            return ret;
+        }
         public static List<Player> Clone(List<Player> list)
         {
             List<Player> ret = new List<Player>();
@@ -176,7 +193,7 @@ namespace Omega
             return ret;
         }
 
-        public static Dictionary<Vector2,Unit> Clone(Dictionary<Vector2, Unit> board)
+        public static Dictionary<Vector2, Unit> Clone(Dictionary<Vector2, Unit> board)
         {
             Dictionary<Vector2, Unit> temp = new Dictionary<Vector2, Unit>();
 
@@ -203,24 +220,24 @@ namespace Omega
                 sum += x[i] * y[i];
             return sum;
         }
-        public static PointF PositionToPixel(Vector2 pos,PointF origin, float radius)
+        public static PointF PositionToPixel(Vector2 pos, PointF origin, float radius)
         {
-            
+
             var x = Constants.SPACING * radius * (float)(Math.Sqrt(3) * pos.X + Math.Sqrt(3) / 2 * pos.Y);
             var y = Constants.SPACING * radius * (3f / 2 * pos.Y);
             var point = new PointF(origin.X + x, origin.Y + y);
             return point;
         }
 
-        public static Vector2 PixelToPosition(Point mousePoint,PointF origin,float radius)
+        public static Vector2 PixelToPosition(Point mousePoint, PointF origin, float radius)
         {
             Vector2 pos;
 
-            var tempPoint = new PointF((mousePoint.X - origin.X), (mousePoint.Y - origin.Y) );
+            var tempPoint = new PointF((mousePoint.X - origin.X), (mousePoint.Y - origin.Y));
             var posX = (Math.Sqrt(3) / 3 * tempPoint.X - 1f / 3 * tempPoint.Y) / (radius * Constants.SPACING);
             var posY = (2.0 / 3 * tempPoint.Y) / (radius * Constants.SPACING);
 
-            Console.WriteLine("rawTF = " + posX + "," + posY);
+            //Console.WriteLine("rawTF = " + posX + "," + posY);
 
             //var rx = Math.Round(posX, 1, MidpointRounding.AwayFromZero);
             //var ry = Math.Round(posY, 1, MidpointRounding.AwayFromZero);
@@ -248,7 +265,7 @@ namespace Omega
                 }
                 else
                 {
-                        tempY--;
+                    tempY--;
                 }
             }
 
@@ -256,38 +273,36 @@ namespace Omega
             //pos = new Vector2((int)rx, (int)ry);
             return pos;
 
-            //var point = new PointF((mousePoint.X - origin.X) / Constants.SPACING, (mousePoint.Y - origin.Y) / Constants.SPACING);
-            //var x = (Math.Sqrt(3) / 3 * point.X - 1.0 / 3 * point.Y) / radius;
-            //var y = (2.0 / 3 * point.Y) / radius;
-
-
-            //var rx = Math.Round(x, 1, MidpointRounding.AwayFromZero);
-            //var ry = Math.Round(y, 1, MidpointRounding.AwayFromZero);
-            //Console.WriteLine(" x =" + x + ",y=" + y);
-            //Console.WriteLine("rx=" + rx + ",ry=" + ry);
-
-            //var tempX = (int)(x / 1);
-            //var tempY = (int)(y / 1);
-            //if (x - tempX >= 0.5)
-            //{
-            //    if (tempX > 0)
-            //        tempX++;
-            //    else if (tempX < 0)
-            //        tempX--;
-            //}
-            //if (y - tempY >= 0.5)
-            //{
-            //    if (tempY > 0)
-            //        tempY++;
-            //    else if (tempY < 0)
-            //        tempY--;
-            //}
-
-            ////Console.WriteLine(mousePoint.ToString());
-            //return new Vector2(tempX, tempY);
-
-            //return new Vector2((int)x, (int)y);
         }
-        
+        public static string ConvertBinaryToString(int n)
+        {
+            char[] b = new char[32];
+            int pos = 31;
+            int i = 0;
+
+            while (i < 32)
+            {
+                if ((n & (1 << i)) != 0)
+                {
+                    b[pos] = '1';
+                }
+                else
+                {
+                    b[pos] = '0';
+                }
+                pos--;
+                i++;
+            }
+            return new string(b);
+        }
+        public static ulong GetRandomBitString()
+        {
+            byte[] buf = new byte[8];
+            rng.NextBytes(buf);
+            ulong longRand = BitConverter.ToUInt64(buf, 0);
+
+
+            return longRand % (ulong.MaxValue);
+        }
     }
 }

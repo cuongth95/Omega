@@ -31,7 +31,7 @@ namespace Omega
         {
             nextHandler = null;
             Score = 1;
-            //UnionFinder = new UnionFind();
+            UnionFinder = new UnionFind();
         }
 
         public virtual Command GetCommand() {

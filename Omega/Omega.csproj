@@ -49,6 +49,8 @@
     <Compile Include="Ai\ABNMAIPlayer.cs" />
     <Compile Include="Ai\ABNMNode.cs" />
     <Compile Include="Ai\RandomAIPlayer.cs" />
+    <Compile Include="Ai\TT\TransitionalTable.cs" />
+    <Compile Include="Ai\TT\ZobristHashing.cs" />
     <Compile Include="Base\Corner.cs" />
     <Compile Include="Evaluation\EvaluateFunction.cs" />
     <Compile Include="Utility\Constants.cs" />
@@ -110,5 +112,6 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
