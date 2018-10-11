@@ -58,7 +58,7 @@ namespace Omega.Ai
         {
             if (gs.CurrentPlayerId != this.PlayerId)
                 return null;
-            GetCommandAB2();
+            GetCommandAB2OneMove();
             //GetCommandABTT();
             return base.GetCommand();
         }
@@ -235,8 +235,74 @@ namespace Omega.Ai
         }
         #endregion
 
+        #region NEGAMAX 1 MOVE
+        //negamax
+        Vector2 bestMove;
+        private void GetCommandAB2OneMove()
+        {
+            prun = 0;
+            visitedNodes = 0;
+            int alpha = -10000;
+            int beta = 10000;
+            int maxPlayer = this.PlayerId;
+            int minPlayer = this.PlayerId - 1;
 
-        #region NEGAMAX
+            bestMove = new Vector2(Constants.INVALID_VECTOR2);
+            beginCmdCount = gs.CommandList.Count ;
+            Console.WriteLine("turn " + turn);
+            turn++;
+            stopWatch.Start();
+            int sco = AB2OM(gs, maxDepth, alpha, beta, this.PlayerId, 1);
+            stopWatch.Stop();
+            Console.WriteLine("final score = " + sco + " | searched " + visitedNodes + " nodes| prun " + prun + " | " + stopWatch.ElapsedMilliseconds / 1000 + "s");
+            stopWatch.Reset();
+            nextCommand = gs.GetNextStone(CommandType.MoveStone, bestMove);
+        }
+        private int AB2OM(GameState gs, int depth, int alpha, int beta, int checkId, int uncheckId)
+        {
+            visitedNodes++;
+            int score = 0;
+            int value = 0;
+            bool gameOver = gs.CheckGameOver();
+            if (depth == 0 || gameOver)
+            {
+                ef.checkId = checkId;
+                return ef.Evaluate(gs); //- TestEvaluate(gs);//Evaluate(gs,this.PlayerId);//
+            }
+            score = -10000;
+            List<GameState> successorList = Generate(gs, checkId);
+            //Utils.Shuffle<GameState>(successorList);
+            for (int child = 0; child < successorList.Count; child++)
+            {
+                if(gs.CurrentPlayerId == checkId)
+                {
+                    value = AB2OM(successorList[child], depth - 1, alpha, beta,checkId, uncheckId);
+                }
+                else
+                    value = -AB2OM(successorList[child], depth - 1, -beta, -alpha, uncheckId, checkId);
+
+                
+                
+                if (value > score)
+                    score = value;
+                if (score > alpha)
+                {
+                    bestMove = successorList[child].CommandList[beginCmdCount].Position;
+                    alpha = score;
+                }
+                if (score >= beta)
+                {
+                    prun++;
+                    break;
+                }
+
+            }
+
+            return score;
+        }
+        #endregion
+
+        #region NEGAMAX 2 MOVES
         //negamax
         private void GetCommandAB2()
         {
@@ -411,18 +477,8 @@ namespace Omega.Ai
                 if (!board[posList[i]].IsHold)
                 {
                     var nextState = gs.Clone(true);
-                    //nextState.SimulateCommand(new Command(CommandType.MoveStone, posList[i]), playerId);
                     nextState.Simulate(CommandType.MoveStone, posList[i],playerId);
                     childList.Add(nextState);
-                    //for (int j = 0; j < posList.Count; j++)
-                    //{
-                    //    if (i != j && !board[posList[j]].IsHold)
-                    //    {
-                    //        var childState = nextState.Clone(true);
-                    //        childState.SimulateCommand(new Command(CommandType.MoveStone, posList[j]),playerId);
-                    //        childList.Add(childState);
-                    //    }
-                    //}
                 }
             }
 

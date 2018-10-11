@@ -47,12 +47,12 @@ namespace Omega.Test
 
             //aiPlayer = new ABNMAIPlayer(2, gameState,2); //new RandomAIPlayer(2, gameState);//
 
-            aiPlayer = new ABNMAIPlayer(2, gameState, 2, new int[] {
+            aiPlayer = new ABNMAIPlayer(2, gameState,2, new int[] {
                 //60,20,5,1
-                60,20,15,1
+                80,30,5,1
             }, new int[] {
                 //60,20,5,-1
-                100,10,5,-1
+               80,30,5,-1
             });
 
             //testAIPlayer = new ABNMAIPlayer(1, gameState, 2, new int[] {
